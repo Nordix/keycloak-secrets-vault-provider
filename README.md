@@ -15,3 +15,10 @@
 | `role`                 | Role to use for authentication.                             | None                                                  |
 
 ## Development
+
+
+```console
+KEYCLOAK_VERSION=26.2.1 EXTENSION_JAR_PATH=./target/keycloak-secrets-provider-1.0-SNAPSHOT.jar docker compose up --force-recreate
+```
+
+Login url for federated realm is http://keycloak.127.0.0.1.nip.io:8080/realms/first/account/

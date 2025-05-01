@@ -8,7 +8,7 @@
  */
 package io.github.nordix.keycloak.services.vault;
 
-import java.net.URI;
+import org.jboss.logging.Logger;
 
 import org.keycloak.vault.VaultProvider;
 import org.keycloak.vault.VaultProviderFactory;
@@ -18,20 +18,17 @@ import org.keycloak.models.KeycloakSession;
 public class SecretsProviderFactory implements VaultProviderFactory {
 
     private static final String PROVIDER_ID = "secrets-provider";
+    private static Logger logger = Logger.getLogger(SecretsProviderFactory.class);
 
     private SecretsProviderConfig config;
 
+
     @Override
     public void init(org.keycloak.Config.Scope configScope) {
-        this.config = new SecretsProviderConfig(
-            configScope.get("auth-method", "kubernetes"),
-            configScope.get("service-account-file", "/var/run/secrets/kubernetes.io/serviceaccount/token"),
-            configScope.get("url") != null ? URI.create(configScope.get("url")) : null,
-            configScope.get("kv-secret-path"),
-            Integer.parseInt(configScope.get("kv-version", "2")),
-            configScope.get("ca-certificate-file"),
-            configScope.get("role"));
+        this.config = new SecretsProviderConfig(configScope);
+        logger.debugv("Initializing secrets-provider (Vault SPI) with {0}", config);
     }
+
 
     @Override
     public VaultProvider create(KeycloakSession session) {

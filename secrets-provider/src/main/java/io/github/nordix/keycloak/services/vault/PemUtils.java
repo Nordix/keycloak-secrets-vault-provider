@@ -8,7 +8,11 @@
  */
 package io.github.nordix.keycloak.services.vault;
 
+import java.io.IOException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
@@ -43,9 +47,13 @@ public class PemUtils {
      *
      * @param pemCertificates PEM string containing certificates
      * @return a KeyStore containing the certificates
+     * @throws KeyStoreException
+     * @throws IOException
+     * @throws CertificateException
+     * @throws NoSuchAlgorithmException
      * @throws Exception if an error occurs while creating the KeyStore
      */
-    public static KeyStore createTrustStoreFromPem(String pemCertificates) throws Exception {
+    public static KeyStore createTrustStoreFromPem(String pemCertificates) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
         X509Certificate[] certificates = decodeCertificates(pemCertificates);
 
         KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
