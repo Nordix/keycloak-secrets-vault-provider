@@ -6,13 +6,14 @@
  * which accompanies this distribution, and is available at
  * http://www.apache.org/licenses/LICENSE-2.0
  */
-package io.github.nordix.keycloak.services.vault;
+package io.github.nordix.baoclient;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Map;
 
 import org.jboss.logging.Logger;
 
@@ -38,6 +39,11 @@ public class BaoClient {
 
     public BaoClient withKubernetesServiceAccount(String serviceAccountFile) {
         this.serviceAccountFile = serviceAccountFile;
+        return this;
+    }
+
+    public BaoClient withToken(String token) {
+        httpClient.withToken(token);
         return this;
     }
 
@@ -119,6 +125,77 @@ public class BaoClient {
 
         logger.debug("Secret successfully retrieved for key: " + secretKey);
         return secretValue;
+    }
+
+    public boolean isReady() {
+        HttpResponse<JsonNode> response = httpClient.sendRequest(
+                "v1/sys/health",
+                "GET",
+                null);
+        return RestClient.isSuccessfulResponse(response);
+    }
+
+    public void enableKubernetesAuth() {
+        HttpResponse<JsonNode> response = httpClient.sendRequest(
+                "v1/sys/auth/kubernetes",
+                "POST",
+                "{\"type\":\"kubernetes\"}");
+
+        if (!RestClient.isSuccessfulResponse(response)) {
+            throw new BaoClientException("Failed to enable Kubernetes auth: " + response.body());
+        }
+        logger.debug("Successfully enabled Kubernetes auth.");
+    }
+
+    public void configureKubernetesAuth(String kubernetesHost) {
+        String body = String.format("{\"kubernetes_host\":\"%s\"}", kubernetesHost);
+        HttpResponse<JsonNode> response = httpClient.sendRequest(
+                "v1/auth/kubernetes/config",
+                "POST",
+                body);
+
+        if (!RestClient.isSuccessfulResponse(response)) {
+            throw new BaoClientException("Failed to configure Kubernetes auth: " + response.body());
+        }
+        logger.debug("Successfully configured Kubernetes auth.");
+    }
+
+    public void enableAuditToStdout() {
+        HttpResponse<JsonNode> response = httpClient.sendRequest(
+                "v1/sys/audit/stdout",
+                "POST",
+                "{\"type\":\"file\", \"options\":{\"file_path\":\"stdout\"}}");
+
+        if (!RestClient.isSuccessfulResponse(response)) {
+            throw new BaoClientException("Failed to enable audit to stdout: " + response.body());
+        }
+        logger.debug("Successfully enabled audit to stdout.");
+    }
+
+    public void writeSecretKv2(String key, Map<String, Object> data) {
+        StringBuilder bodyBuilder = new StringBuilder("{\"data\":{");
+        for (Map.Entry<String, Object> entry : data.entrySet()) {
+            bodyBuilder.append("\"").append(entry.getKey()).append("\":");
+            if (entry.getValue() instanceof String) {
+                bodyBuilder.append("\"").append(entry.getValue()).append("\"");
+            } else {
+                bodyBuilder.append(entry.getValue());
+            }
+            bodyBuilder.append(",");
+        }
+        if (!data.isEmpty()) {
+            bodyBuilder.setLength(bodyBuilder.length() - 1); // Remove trailing comma
+        }
+        bodyBuilder.append("}}");
+
+        HttpResponse<JsonNode> response = httpClient.sendRequest(
+                "v1/" + key,
+                "POST",
+                bodyBuilder.toString());
+
+        if (!RestClient.isSuccessfulResponse(response)) {
+            throw new BaoClientException("Failed to write KV2 data: " + response.body());
+        }
     }
 
     public static class BaoClientException extends RuntimeException {

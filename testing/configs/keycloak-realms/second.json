@@ -6,7 +6,7 @@
     {
       "clientId": "federator",
       "enabled": true,
-      "redirectUris": ["http://keycloak.127.0.0.1.nip.io:8080/*"],
+      "redirectUris": ["http://127.0.0.127:8080/*"],
       "webOrigins": ["*"],
       "publicClient": false,
       "protocol": "openid-connect",

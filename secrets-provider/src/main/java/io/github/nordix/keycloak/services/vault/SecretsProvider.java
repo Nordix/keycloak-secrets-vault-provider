@@ -8,14 +8,16 @@
  */
 package io.github.nordix.keycloak.services.vault;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Optional;
+
 import org.jboss.logging.Logger;
 import org.keycloak.vault.DefaultVaultRawSecret;
 import org.keycloak.vault.VaultProvider;
 import org.keycloak.vault.VaultRawSecret;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Optional;
+import io.github.nordix.baoclient.BaoClient;
 
 public class SecretsProvider implements VaultProvider {
 

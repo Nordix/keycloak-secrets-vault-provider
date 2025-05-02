@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
@@ -8,69 +9,170 @@
   <version>1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <name>keycloak-secrets-provider</name>
-  <url>https://github.com/Nordix/keycloak-secrets-provider</url>
+  <name>Vault SPI Provider for Keycloak</name>
+  <url>https://github.com/Nordix/keycloak-secrets-vault-provider</url>
 
   <modules>
+    <module>bao-client</module>
     <module>secrets-provider</module>
-    <module>testing/coordinator</module>
+    <module>testing/test-utils</module>
   </modules>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- Compatibility with Keycloak 20 to 25 -->
     <maven.compiler.release>17</maven.compiler.release>
-    <keycloak.version>26.2.0</keycloak.version>
-    <junit.jupiter.version>5.12.2</junit.jupiter.version>
-    <jboss.resteasy.version>6.2.12.Final</jboss.resteasy.version>
-    <jboss.logmanager.version>3.1.2.Final</jboss.logmanager.version>
-    <jboss.logging.version>3.6.1.Final</jboss.logging.version>
-    <certy.version>0.4.1</certy.version>
-    <apache.commons.exec.version>1.4.0</apache.commons.exec.version>
-    <maven.clean.plugin.version>3.4.1</maven.clean.plugin.version>
-    <maven.resources.plugin.version>3.3.1</maven.resources.plugin.version>
-    <maven.compiler.plugin.version>3.14.0</maven.compiler.plugin.version>
-    <maven.surefire.plugin.version>3.5.3</maven.surefire.plugin.version>
-    <maven.jar.plugin.version>3.4.2</maven.jar.plugin.version>
-    <maven.install.plugin.version>3.1.4</maven.install.plugin.version>
-    <maven.deploy.plugin.version>3.1.4</maven.deploy.plugin.version>
-    <maven.project-info-reports-plugin.version>3.9.0</maven.project-info-reports-plugin.version>
-    <maven.failsafe.plugin.version>3.5.3</maven.failsafe.plugin.version>
-    <maven.checkstyle.plugin.version>3.6.0</maven.checkstyle.plugin.version>
-    <maven.jacoco.plugin.version>0.8.13</maven.jacoco.plugin.version>
-    <maven.shade.plugin.version>3.5.1</maven.shade.plugin.version>
+    <version.keycloak>26.2.0</version.keycloak>
+    <version.junit.jupiter>5.12.2</version.junit.jupiter>
+    <version.jboss.logmanager>3.1.2.Final</version.jboss.logmanager>
+    <version.jboss.logging>3.6.1.Final</version.jboss.logging>
+    <version.certy>0.4.1</version.certy>
+    <version.apache.commons.exec>1.4.0</version.apache.commons.exec>
+    <version.jackson.core>2.19.0</version.jackson.core>
+    <version.maven.clean.plugin>3.4.1</version.maven.clean.plugin>
+    <version.maven.resources.plugin>3.3.1</version.maven.resources.plugin>
+    <version.maven.compiler.plugin>3.14.0</version.maven.compiler.plugin>
+    <version.maven.surefire.plugin>3.5.3</version.maven.surefire.plugin>
+    <version.maven.jar.plugin>3.4.2</version.maven.jar.plugin>
+    <version.maven.install.plugin>3.1.4</version.maven.install.plugin>
+    <version.maven.deploy.plugin>3.1.4</version.maven.deploy.plugin>
+    <version.maven.project-info-reports.plugin>3.9.0</version.maven.project-info-reports.plugin>
+    <version.maven.failsafe.plugin>3.5.3</version.maven.failsafe.plugin>
+    <version.maven.checkstyle.plugin>3.6.0</version.maven.checkstyle.plugin>
+    <version.maven.jacoco.plugin>0.8.13</version.maven.jacoco.plugin>
+    <version.maven.shade.plugin>3.5.1</version.maven.shade.plugin>
   </properties>
 
-  <!-- Manage dependency versions for submodules -->
+  <!-- Manage dependency versions -->
   <dependencyManagement>
     <dependencies>
+      <!-- Submodule versions -->
+      <dependency>
+        <groupId>io.github.nordix</groupId>
+        <artifactId>baoclient</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.nordix</groupId>
+        <artifactId>testutils</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <!-- External dependency versions -->
+      <dependency>
+        <groupId>org.keycloak</groupId>
+        <artifactId>keycloak-services</artifactId>
+        <version>${version.keycloak}</version>
+      </dependency>
       <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
-        <version>${junit.jupiter.version}</version>
+        <version>${version.junit.jupiter}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>fi.protonode</groupId>
         <artifactId>certy</artifactId>
-        <version>${certy.version}</version>
+        <version>${version.certy}</version>
       </dependency>
       <dependency>
         <groupId>org.jboss.logging</groupId>
         <artifactId>jboss-logging</artifactId>
-        <version>${jboss.logging.version}</version>
+        <version>${version.jboss.logging}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.logmanager</groupId>
+        <artifactId>jboss-logmanager</artifactId>
+        <version>${version.jboss.logmanager}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-exec</artifactId>
+        <version>${version.apache.commons.exec}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${version.jackson.core}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
 
-  <!-- Maven plugins -->
+  <!-- Manage Maven plugin versions and configuration for submodules -->
   <build>
     <pluginManagement>
       <plugins>
         <plugin>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>${version.maven.clean.plugin}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>${version.maven.resources.plugin}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${version.maven.compiler.plugin}</version>
+          <configuration>
+            <compilerArgs>
+              <arg>-proc:none</arg>
+            </compilerArgs>
+          </configuration>
+        </plugin>
+        <!-- Unit tests config -->
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${version.maven.surefire.plugin}</version>
+          <configuration>
+            <systemPropertyVariables>
+              <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+              <java.util.logging.config.file>
+                ${maven.multiModuleProjectDirectory}/testing/configs/logging.properties</java.util.logging.config.file>
+            </systemPropertyVariables>
+          </configuration>
+        </plugin>
+        <!-- Integration test config -->
+        <plugin>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>${version.maven.failsafe.plugin}</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>integration-test</goal>
+                <goal>verify</goal>
+              </goals>
+              <configuration>
+                <systemPropertyVariables>
+                  <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                  <logging.configuration>
+                    file:///${maven.multiModuleProjectDirectory}/testing/configs/logging.properties</logging.configuration>
+                  <maven.multiModuleProjectDirectory>${maven.multiModuleProjectDirectory}</maven.multiModuleProjectDirectory>
+                </systemPropertyVariables>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>${version.maven.jar.plugin}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-install-plugin</artifactId>
+          <version>${version.maven.install.plugin}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>${version.maven.deploy.plugin}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-project-info-reports-plugin</artifactId>
+          <version>${version.maven.project-info-reports.plugin}</version>
+        </plugin>
+        <!-- Checkstyle  -->
+        <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>${maven.checkstyle.plugin.version}</version>
+          <version>${version.maven.checkstyle.plugin}</version>
           <configuration>
             <configLocation>.checkstyle.xml</configLocation>
             <consoleOutput>true</consoleOutput>
@@ -84,10 +186,11 @@
             </execution>
           </executions>
         </plugin>
+        <!-- Jacoco coverage report -->
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>${maven.jacoco.plugin.version}</version>
+          <version>${version.maven.jacoco.plugin}</version>
           <executions>
             <execution>
               <goals>

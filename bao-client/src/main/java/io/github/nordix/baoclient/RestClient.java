@@ -6,7 +6,7 @@
  * which accompanies this distribution, and is available at
  * http://www.apache.org/licenses/LICENSE-2.0
  */
-package io.github.nordix.keycloak.services.vault;
+package io.github.nordix.baoclient;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -68,12 +68,14 @@ public class RestClient {
         try {
             return getHttpClient().send(request, jsonBodyHandler());
         } catch (IOException e) {
-            logger.errorv("Failed to send HTTP request to {0}", endpoint, e);
-            throw new RestClientException("Failed to send request", e);
+            String errorMessage = "Failed to send " + request.method() + " to " + request.uri() + ": " + e.getCause();
+            logger.error(errorMessage, e);
+            throw new RestClientException(errorMessage, e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            logger.errorv("Request to {0} was interrupted", endpoint, e);
-            throw new RestClientException("Request was interrupted", e);
+            String errorMessage = "Request to " + request.uri() + " was interrupted: " + e.getMessage();
+            logger.error(errorMessage, e);
+            throw new RestClientException(errorMessage, e);
         }
     }
 

@@ -9,8 +9,8 @@
       "providerId": "keycloak-oidc",
       "enabled": true,
       "config": {
-        "tokenUrl": "http://keycloak.127.0.0.1.nip.io:8080/realms/second/protocol/openid-connect/token",
-        "authorizationUrl": "http://keycloak.127.0.0.1.nip.io:8080/realms/second/protocol/openid-connect/auth",
+        "tokenUrl": "http://127.0.0.127:8080/realms/second/protocol/openid-connect/token",
+        "authorizationUrl": "http://127.0.0.127:8080/realms/second/protocol/openid-connect/auth",
         "clientId": "federator",
         "clientSecret": "${vault.keycloak.client-secret}"
       }

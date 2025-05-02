@@ -1,0 +1,80 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: role-tokenreview-binding
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: tokenreview
+    namespace: default
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tokenreview
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openbao
+spec:
+  selector:
+    app: openbao
+  ports:
+    - protocol: TCP
+      port: 8200
+      targetPort: 8200
+      nodePort: 8200
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openbao
+  labels:
+    app: openbao
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openbao
+  template:
+    metadata:
+      labels:
+        app: openbao
+    spec:
+      containers:
+        - name: openbao
+          image: ghcr.io/openbao/openbao:2.2.1
+          env:
+            - name: BAO_DEV_LISTEN_ADDRESS
+              value: "0.0.0.0:8200"
+            - name: BAO_DEV_ROOT_TOKEN_ID
+              value: "my-root-token"
+            - name: BAO_LOG_LEVEL
+              value: "debug"
+
+          ports:
+            - containerPort: 8200
+
+          livenessProbe:
+            httpGet:
+              path: /v1/sys/health
+              port: 8200
+
+          readinessProbe:
+            httpGet:
+              path: /v1/sys/health
+              port: 8200
+
+          startupProbe:
+            failureThreshold: 600
+            httpGet:
+              path: /v1/sys/health
+              port: 8200
+
+      serviceAccountName: tokenreview
