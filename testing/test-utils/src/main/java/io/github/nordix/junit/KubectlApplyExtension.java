@@ -69,7 +69,7 @@ public class KubectlApplyExtension implements BeforeAllCallback {
         CommandLine cmdLine = CommandLine.parse(command);
         DefaultExecutor executor = DefaultExecutor.builder().setWorkingDirectory(new File(baseDir)).get();
 
-        logger.infov("Running kubectl command \"{0}\" in directory \"{1}\"", command, executor.getWorkingDirectory());
+        logger.infov("Running command \"{0}\" in directory \"{1}\"", command, executor.getWorkingDirectory());
 
         int exitValue = executor.execute(cmdLine);
         if (exitValue != 0) {

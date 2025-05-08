@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 OpenInfra Foundation Europe and others.
+ * Copyright (c) 2025 OpenInfra Foundation Europe and others.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Apache License, Version 2.0
@@ -52,8 +52,7 @@ public class KindExtension implements BeforeAllCallback, AfterAllCallback {
     }
 
     /**
-     * Start Kind before all tests but do not wait for it to complete. That allows
-     * the logs to be displayed in the console in parallel with the test execution.
+     * Start Kind before all tests.
      */
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
@@ -83,7 +82,7 @@ public class KindExtension implements BeforeAllCallback, AfterAllCallback {
     /**
      * Run a command on a subprocess.
      *
-     * Note: Use apache-commons-exec since ProcessBuilder had problems with output
+     * Note: Use apache-commons-exec since ProcessBuilder has problems with output
      * redirection (output stopped in the middle even if the process was still
      * running).
      */
@@ -91,7 +90,7 @@ public class KindExtension implements BeforeAllCallback, AfterAllCallback {
         CommandLine cmdLine = CommandLine.parse(command);
         DefaultExecutor executor = DefaultExecutor.builder().setWorkingDirectory(new File(baseDir)).get();
 
-        logger.infov("Running Kind command \"{0}\" in directory \"{1}\"", command, executor.getWorkingDirectory());
+        logger.infov("Running command \"{0}\" in directory \"{1}\"", command, executor.getWorkingDirectory());
 
         if (waitForCompletion) {
             int exitValue = executor.execute(cmdLine);

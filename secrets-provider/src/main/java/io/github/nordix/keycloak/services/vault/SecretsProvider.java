@@ -33,7 +33,8 @@ public class SecretsProvider implements VaultProvider {
         this.config = config;
 
         pathPrefix = config.getKvPathPrefix().replace("%realm%", realm);
-        // Remove trailing slash if present
+
+        // Remove trailing slash if present.
         if (pathPrefix.endsWith("/")) {
             pathPrefix = pathPrefix.substring(0, pathPrefix.length() - 1);
         }
@@ -51,12 +52,7 @@ public class SecretsProvider implements VaultProvider {
     }
 
     private VaultRawSecret obtainSecretInternal(String vaultSecretId) throws IOException {
-        // Syntax ${vault.path/to/secret,field_name}
-        // The path is combined with the kv-path-prefix
-        // The field name is the key to the secret in the data map returned in the response body.
-
         String pathSuffix = vaultSecretId.replace("%realm%", realm);
-
         String fieldName = null;
         String fullPath = null;
 

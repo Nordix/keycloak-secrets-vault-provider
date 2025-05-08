@@ -50,7 +50,7 @@
 
   <build>
     <plugins>
-      <!-- Build a fat jar -->
+      <!-- Build a "fat" jar -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>

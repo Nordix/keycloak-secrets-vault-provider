@@ -40,7 +40,7 @@ class VaultSecretsProviderIT {
         BaoClient bao = new BaoClient(URI.create("http://127.0.0.127:8200")).withToken("my-root-token");
 
         // Enable Kubernetes authentication method.
-//        bao.write("sys/auth/kubernetes", Map.of("type", "kubernetes"));
+        bao.write("sys/auth/kubernetes", Map.of("type", "kubernetes"));
         bao.write("auth/kubernetes/config", Map.of("kubernetes_host", "https://kubernetes.default.svc"));
 
         // Configure policy and role.
