@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.security.GeneralSecurityException;
+import java.util.Map;
 import java.util.Objects;
 
 import javax.net.ssl.SSLContext;
@@ -38,22 +39,22 @@ public class RestClient {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final URI baseUrl;
-    private String token;
     private String caCertificateFile;
+    private Map<String, String> headers = new java.util.HashMap<>();
 
     public RestClient(URI baseUrl) {
         this.baseUrl = baseUrl;
     }
 
     public HttpResponse<JsonNode> sendRequest(String endpoint, String method, String body) {
-        Objects.requireNonNull(token, "Token must be set before sending requests");
         Objects.requireNonNull(endpoint, "Endpoint must not be null");
         Objects.requireNonNull(method, "HTTP method must not be null");
 
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(baseUrl.resolve(endpoint))
-                .header("Content-Type", "application/json")
-                .header("X-Vault-Token", token);
+                .header("Content-Type", "application/json");
+
+        headers.forEach(requestBuilder::header);
 
         if ("POST".equalsIgnoreCase(method)) {
             Objects.requireNonNull(body, "Body must not be null for POST requests");
@@ -79,8 +80,10 @@ public class RestClient {
         }
     }
 
-    public RestClient withToken(String token) {
-        this.token = token;
+    public RestClient withHeader(String key, String value) {
+        Objects.requireNonNull(key, "Header key must not be null");
+        Objects.requireNonNull(value, "Header value must not be null");
+        headers.put(key, value);
         return this;
     }
 

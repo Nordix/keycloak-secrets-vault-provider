@@ -32,10 +32,23 @@ public class KindExtension implements BeforeAllCallback, AfterAllCallback {
     private final String baseDir = System.getProperty("maven.multiModuleProjectDirectory");
     private final String configFileName;
     private final String clusterName;
+    private final boolean skipEnvSetup;
 
     public KindExtension(String configFileName, String clusterName) {
+        this(configFileName, clusterName, isEnvSetupSkipped());
+    }
+
+    public KindExtension(String configFileName, String clusterName, boolean skipEnvSetup) {
         this.configFileName = configFileName;
         this.clusterName = clusterName;
+        this.skipEnvSetup = skipEnvSetup;
+    }
+
+    /**
+     * Check if environment setup should be skipped.
+     */
+    public static boolean isEnvSetupSkipped() {
+        return System.getProperty("skipEnvSetup") != null;
     }
 
     /**
@@ -44,6 +57,11 @@ public class KindExtension implements BeforeAllCallback, AfterAllCallback {
      */
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
+        if (skipEnvSetup) {
+            logger.info("Skipping Kind cluster creation as skipEnvSetup is set");
+            return;
+        }
+
         String command = String.format(KIND_CREATE_CLUSTER, clusterName, configFileName);
         run(command, true, "Failed to start Kind cluster.");
     }
@@ -53,6 +71,11 @@ public class KindExtension implements BeforeAllCallback, AfterAllCallback {
      */
     @Override
     public void afterAll(ExtensionContext context) throws Exception {
+        if (skipEnvSetup) {
+            logger.info("Skipping Kind cluster deletion as skipEnvSetup is set");
+            return;
+        }
+
         String command = String.format(KIND_DELETE_CLUSTER, clusterName);
         run(command, true, "Failed to stop Kind cluster.");
     }

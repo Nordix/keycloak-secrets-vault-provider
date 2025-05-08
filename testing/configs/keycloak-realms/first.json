@@ -12,7 +12,7 @@
         "tokenUrl": "http://127.0.0.127:8080/realms/second/protocol/openid-connect/token",
         "authorizationUrl": "http://127.0.0.127:8080/realms/second/protocol/openid-connect/auth",
         "clientId": "federator",
-        "clientSecret": "${vault.keycloak.client-secret}"
+        "clientSecret": "${vault.client-secret}"
       }
     }
   ]

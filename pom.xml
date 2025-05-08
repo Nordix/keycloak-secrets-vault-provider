@@ -126,8 +126,8 @@
           <configuration>
             <systemPropertyVariables>
               <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-              <java.util.logging.config.file>
-                ${maven.multiModuleProjectDirectory}/testing/configs/logging.properties</java.util.logging.config.file>
+              <logging.configuration>
+                ${maven.multiModuleProjectDirectory}/testing/configs/logging.properties</logging.configuration>
             </systemPropertyVariables>
           </configuration>
         </plugin>

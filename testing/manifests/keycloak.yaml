@@ -59,8 +59,10 @@ spec:
                 --import-realm \
                 --spi-vault-provider=secrets-provider \
                 --spi-vault-secrets-provider-address=http://openbao:8200 \
-                --spi-vault-secrets-provider-kv-secret-path=secret/keycloak \
+                --spi-vault-secrets-provider-kv-mount=secret \
+                --spi-vault-secrets-provider-kv-path-prefix="keycloak/%realm%" \
                 --spi-vault-secrets-provider-kv-version=2 \
+                --spi-vault-secrets-provider-role=my-role \
                 --log-level=INFO,io.github.nordix:debug
           env:
             - name: KC_BOOTSTRAP_ADMIN_USERNAME

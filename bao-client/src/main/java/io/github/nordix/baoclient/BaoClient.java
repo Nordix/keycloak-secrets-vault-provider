@@ -25,7 +25,6 @@ public class BaoClient {
 
     private static final String AUTH_URL_KUBERNETES = "/v1/auth/kubernetes/login";
 
-    private String serviceAccountFile;
     private RestClient httpClient;
 
     public BaoClient(URI url) {
@@ -37,18 +36,8 @@ public class BaoClient {
         return this;
     }
 
-    public BaoClient withKubernetesServiceAccount(String serviceAccountFile) {
-        this.serviceAccountFile = serviceAccountFile;
-        return this;
-    }
-
     public BaoClient withToken(String token) {
-        httpClient.withToken(token);
-        return this;
-    }
-
-    public BaoClient login(String role) throws IOException {
-        loginWithKubernetes(serviceAccountFile, role);
+        httpClient.withHeader("X-Vault-Token", token);
         return this;
     }
 
@@ -66,11 +55,11 @@ public class BaoClient {
         HttpResponse<JsonNode> response = httpClient.sendRequest(
                 AUTH_URL_KUBERNETES,
                 "POST",
-                String.format("{\"role\": \"%s\", \"jwt\": \"%s\"}", role, kubernetesSaToken));
+                toJsonString(Map.of("role", role, "jwt", kubernetesSaToken)));
 
         if (!RestClient.isSuccessfulResponse(response)) {
             logger.errorv(
-                    "Login failed with response code: {0} body: {1}",
+                    "Login failed with response code: '{0}' body: '{1}'",
                     response.statusCode(),
                     response.body());
             throw new BaoClientException(
@@ -78,53 +67,8 @@ public class BaoClient {
         }
 
         logger.debug("Login successful. Token obtained.");
-        httpClient.withToken(response.body().path("auth").path("client_token").asText());
+        httpClient.withHeader("X-Vault-Token", response.body().path("auth").path("client_token").asText());
         return this;
-    }
-
-    public String getSecretFromKv1(String secretPath, String secretKey) {
-        return getSecret(secretPath, secretKey, "/data/");
-    }
-
-    public String getSecretFromKv2(String secretPath, String secretKey) {
-        return getSecret(secretPath, secretKey, "/data/data/");
-    }
-
-    public String getSecret(String secretPath, String secretKey, String dataPath) {
-        if (secretKey == null || secretKey.isEmpty()) {
-            logger.error("Secret key is empty or null.");
-            throw new IllegalArgumentException("Secret key is empty or null.");
-        }
-
-        if (secretPath == null || secretPath.isEmpty()) {
-            logger.error("Secret path is empty or null.");
-            throw new IllegalArgumentException("Secret path is empty or null.");
-        }
-
-        logger.debug("Fetching secret from store at path: " + secretPath + " with key: " + secretKey);
-
-        HttpResponse<JsonNode> response = httpClient.sendRequest(
-                "v1/" + secretPath,
-                "GET",
-                null);
-
-        if (!RestClient.isSuccessfulResponse(response)) {
-            logger.errorv(
-                    "Failed to fetch secret. Response code: {0} body: {1}",
-                    response.statusCode(),
-                    response.body());
-            throw new BaoClientException(
-                    "Failed to fetch secret from " + secretPath + ". HTTP response code " + response.statusCode());
-        }
-
-        String secretValue = response.body().at(dataPath + secretKey).asText();
-        if (secretValue == null || secretValue.isEmpty()) {
-            logger.error("Secret key not found: " + secretKey);
-            throw new BaoClientException("Secret key not found: " + secretKey);
-        }
-
-        logger.debug("Secret successfully retrieved for key: " + secretKey);
-        return secretValue;
     }
 
     public boolean isReady() {
@@ -135,67 +79,92 @@ public class BaoClient {
         return RestClient.isSuccessfulResponse(response);
     }
 
-    public void enableKubernetesAuth() {
+    public void write(String path, Map<String, String> data) {
         HttpResponse<JsonNode> response = httpClient.sendRequest(
-                "v1/sys/auth/kubernetes",
+                "v1/" + path,
                 "POST",
-                "{\"type\":\"kubernetes\"}");
+                toJsonString(data));
 
         if (!RestClient.isSuccessfulResponse(response)) {
-            throw new BaoClientException("Failed to enable Kubernetes auth: " + response.body());
+            logger.errorv(
+                    "Failed to write data. Response code: '{0}' body: '{1}'",
+                    response.statusCode(),
+                    response.body());
+            throw new BaoClientException("Failed to write data to path '" + path + "': '" + response.body() + "'");
         }
-        logger.debug("Successfully enabled Kubernetes auth.");
+        logger.debug("Successfully wrote data to path: '" + path + "'");
     }
 
-    public void configureKubernetesAuth(String kubernetesHost) {
-        String body = String.format("{\"kubernetes_host\":\"%s\"}", kubernetesHost);
+    public String kv1Get(String kvMountPath, String secretPath, String secretKey) {
         HttpResponse<JsonNode> response = httpClient.sendRequest(
-                "v1/auth/kubernetes/config",
-                "POST",
-                body);
+                "v1/" + kvMountPath + "/" + secretPath,
+                "GET",
+                null);
 
         if (!RestClient.isSuccessfulResponse(response)) {
-            throw new BaoClientException("Failed to configure Kubernetes auth: " + response.body());
+            logger.errorv(
+                    "Failed to read data. Response code: '{0}' body: '{1}'",
+                    response.statusCode(),
+                    response.body());
+            throw new BaoClientException("Failed to read data from path '" + secretPath + "': '" + response.body() + "'");
         }
-        logger.debug("Successfully configured Kubernetes auth.");
+        return response.body().path("data").path(secretKey).asText();
     }
 
-    public void enableAuditToStdout() {
+    public String kv2Get(String kvMountPath, String secretPath, String secretKey) {
         HttpResponse<JsonNode> response = httpClient.sendRequest(
-                "v1/sys/audit/stdout",
-                "POST",
-                "{\"type\":\"file\", \"options\":{\"file_path\":\"stdout\"}}");
+                "v1/" + kvMountPath + "/data/" + secretPath,
+                "GET",
+                null);
 
         if (!RestClient.isSuccessfulResponse(response)) {
-            throw new BaoClientException("Failed to enable audit to stdout: " + response.body());
+            logger.errorv(
+                    "Failed to read data. Response code: '{0}' body: '{1}'",
+                    response.statusCode(),
+                    response.body());
+            throw new BaoClientException("Failed to read data from path '" + secretPath + "': '" + response.body() + "'");
         }
-        logger.debug("Successfully enabled audit to stdout.");
+
+        JsonNode rootNode = response.body();
+        if (!rootNode.has("data") ||
+            !rootNode.path("data").has("data") ||
+            !rootNode.path("data").path("data").has(secretKey)) {
+
+            logger.errorv("Secret key '{0}' not found at path '{1}'", secretKey, secretPath);
+            throw new BaoClientException("Secret key '" + secretKey + "' not found at path '" + secretPath + "'");
+        }
+
+        return rootNode.path("data").path("data").path(secretKey).asText();
     }
 
-    public void writeSecretKv2(String key, Map<String, Object> data) {
-        StringBuilder bodyBuilder = new StringBuilder("{\"data\":{");
-        for (Map.Entry<String, Object> entry : data.entrySet()) {
+    public void kv2Put(String kvMountPath, String secretPath, Map<String, String> data) {
+        HttpResponse<JsonNode> response = httpClient.sendRequest(
+                "v1/" + kvMountPath + "/data/" + secretPath,
+                "POST",
+                "{\"data\":" + toJsonString(data) + "}");
+
+        if (!RestClient.isSuccessfulResponse(response)) {
+            logger.errorv(
+                    "Failed to write data. Response code: '{0}' body: '{1}'",
+                    response.statusCode(),
+                    response.body());
+            throw new BaoClientException("Failed to write data to path '" + secretPath + "': '" + response.body() + "'");
+        }
+        logger.debug("Successfully wrote data to path: '" + secretPath + "'");
+    }
+
+    private String toJsonString(Map<String, String> data) {
+        StringBuilder bodyBuilder = new StringBuilder("{");
+        for (Map.Entry<String, String> entry : data.entrySet()) {
             bodyBuilder.append("\"").append(entry.getKey()).append("\":");
-            if (entry.getValue() instanceof String) {
-                bodyBuilder.append("\"").append(entry.getValue()).append("\"");
-            } else {
-                bodyBuilder.append(entry.getValue());
-            }
+            bodyBuilder.append("\"").append(entry.getValue()).append("\"");
             bodyBuilder.append(",");
         }
         if (!data.isEmpty()) {
             bodyBuilder.setLength(bodyBuilder.length() - 1); // Remove trailing comma
         }
-        bodyBuilder.append("}}");
-
-        HttpResponse<JsonNode> response = httpClient.sendRequest(
-                "v1/" + key,
-                "POST",
-                bodyBuilder.toString());
-
-        if (!RestClient.isSuccessfulResponse(response)) {
-            throw new BaoClientException("Failed to write KV2 data: " + response.body());
-        }
+        bodyBuilder.append("}");
+        return bodyBuilder.toString();
     }
 
     public static class BaoClientException extends RuntimeException {

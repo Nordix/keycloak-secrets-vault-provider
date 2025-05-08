@@ -23,7 +23,8 @@ public class SecretsProviderConfig {
     private String authMethod;
     private String serviceAccountFile;
     private URI address;
-    private String kvSecretPath;
+    private String kvMount;
+    private String kvPathPrefix;
     private int kvVersion;
     private String caCertificateFile;
     private String role;
@@ -33,19 +34,15 @@ public class SecretsProviderConfig {
         this.serviceAccountFile = configScope.get("service-account-file",
                 "/var/run/secrets/kubernetes.io/serviceaccount/token");
         this.address = configScope.get("address") != null ? URI.create(configScope.get("address")) : null;
-        this.kvSecretPath = configScope.get("kv-secret-path");
+        this.kvMount = configScope.get("kv-mount", "secret");
+        this.kvPathPrefix = configScope.get("kv-path-prefix", "keycloak/%realm%");
         this.kvVersion = Integer.parseInt(configScope.get("kv-version", "2"));
         this.caCertificateFile = configScope.get("ca-certificate-file");
-        this.role = configScope.get("role");
+        this.role = configScope.get("role", "");
 
         if (address == null) {
             logger.error(CMD_LINE_OPTION_PREFIX + "address + must be provided");
             throw new IllegalArgumentException(CMD_LINE_OPTION_PREFIX + "address must be provided");
-        }
-
-        if (kvSecretPath == null || kvSecretPath.isBlank()) {
-            logger.error(CMD_LINE_OPTION_PREFIX + "kv-secret-path + must be provided");
-            throw new IllegalArgumentException(CMD_LINE_OPTION_PREFIX + "kv-secret-path must be provided");
         }
 
         if (serviceAccountFile != null && !fileExistsAndReadable(serviceAccountFile)) {
@@ -55,11 +52,15 @@ public class SecretsProviderConfig {
                     + "service-account-file does not exist or is not readable: " + serviceAccountFile);
         }
 
-        if (caCertificateFile != null && !fileExistsAndReadable(caCertificateFile)) {
-            logger.errorv(CMD_LINE_OPTION_PREFIX + "ca-certificate-file does not exist or is not readable: {0}",
-                    caCertificateFile);
-            throw new IllegalArgumentException(CMD_LINE_OPTION_PREFIX
-                    + "ca-certificate-file does not exist or is not readable: " + caCertificateFile);
+        if (address.getScheme().equalsIgnoreCase("https")) {
+            if (caCertificateFile == null) {
+                logger.warn(CMD_LINE_OPTION_PREFIX + "ca-certificate-file is not provided for HTTPS connection");
+            } else if (!fileExistsAndReadable(caCertificateFile)) {
+                logger.errorv(CMD_LINE_OPTION_PREFIX + "ca-certificate-file does not exist or is not readable: {0}",
+                        caCertificateFile);
+                throw new IllegalArgumentException(CMD_LINE_OPTION_PREFIX
+                        + "ca-certificate-file does not exist or is not readable: " + caCertificateFile);
+            }
         }
 
         if (kvVersion < 1 || kvVersion > 2) {
@@ -84,8 +85,12 @@ public class SecretsProviderConfig {
         return address;
     }
 
-    public String getKvSecretPath() {
-        return kvSecretPath;
+    public String getKvMount() {
+        return kvMount;
+    }
+
+    public String getKvPathPrefix() {
+        return kvPathPrefix;
     }
 
     public int getKvVersion() {
@@ -106,10 +111,12 @@ public class SecretsProviderConfig {
                 "authMethod='" + authMethod + '\'' +
                 ", serviceAccountFile='" + serviceAccountFile + '\'' +
                 ", address=" + address +
-                ", kvSecretPath='" + kvSecretPath + '\'' +
+                ", kvMount='" + kvMount + '\'' +
+                ", kvPathPrefix='" + kvPathPrefix + '\'' +
                 ", kvVersion=" + kvVersion +
                 ", caCertificateFile='" + caCertificateFile + '\'' +
                 ", role='" + role + '\'' +
+                ", serviceAccountFile='" + serviceAccountFile + '\'' +
                 '}';
     }
 }
