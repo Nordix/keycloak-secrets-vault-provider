@@ -9,10 +9,10 @@
 package io.github.nordix.keycloak.services.vault;
 
 import org.jboss.logging.Logger;
-
+import org.keycloak.Config.Scope;
+import org.keycloak.models.KeycloakSession;
 import org.keycloak.vault.VaultProvider;
 import org.keycloak.vault.VaultProviderFactory;
-import org.keycloak.models.KeycloakSession;
 
 
 public class SecretsProviderFactory implements VaultProviderFactory {
@@ -24,8 +24,8 @@ public class SecretsProviderFactory implements VaultProviderFactory {
 
 
     @Override
-    public void init(org.keycloak.Config.Scope configScope) {
-        this.config = new SecretsProviderConfig(configScope);
+    public void init(Scope config) {
+        this.config = new SecretsProviderConfig(config);
         logger.debugv("Initializing secrets-provider (Vault SPI) with {0}", config);
     }
 

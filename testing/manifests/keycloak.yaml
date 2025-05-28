@@ -47,12 +47,13 @@ spec:
     spec:
       containers:
         - name: keycloak
-          image: quay.io/keycloak/keycloak:26.2.2
+          image: quay.io/keycloak/keycloak:26.2.5
           command:
             - "/bin/bash"
             - "-c"
             - |
               cp /host/secrets-provider/target/secrets-provider*.jar /opt/keycloak/providers/secrets-provider.jar
+              cp /host/secrets-manager/target/secrets-manager*.jar /opt/keycloak/providers/secrets-manager.jar
               mkdir -p /opt/keycloak/data/import
               cp /host/testing/configs/keycloak-realms/* /opt/keycloak/data/import/
               /opt/keycloak/bin/kc.sh start-dev \
@@ -63,6 +64,11 @@ spec:
                 --spi-vault-secrets-provider-kv-path-prefix="keycloak/%realm%" \
                 --spi-vault-secrets-provider-kv-version=2 \
                 --spi-vault-secrets-provider-role=my-role \
+                --spi-admin-realm-restapi-extension-secrets-manager-address=http://openbao:8200 \
+                --spi-admin-realm-restapi-extension-secrets-manager-kv-mount=secret \
+                --spi-admin-realm-restapi-extension-secrets-manager-kv-path-prefix="keycloak/%realm%" \
+                --spi-admin-realm-restapi-extension-secrets-manager-kv-version=2 \
+                --spi-admin-realm-restapi-extension-secrets-manager-role=my-role \
                 --log-level=INFO,io.github.nordix:debug
           env:
             - name: KC_BOOTSTRAP_ADMIN_USERNAME

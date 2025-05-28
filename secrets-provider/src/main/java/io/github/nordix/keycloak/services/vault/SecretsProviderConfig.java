@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import org.jboss.logging.Logger;
+import org.keycloak.Config.Scope;
 
 public class SecretsProviderConfig {
 
@@ -29,7 +30,7 @@ public class SecretsProviderConfig {
     private String caCertificateFile;
     private String role;
 
-    public SecretsProviderConfig(org.keycloak.Config.Scope configScope) {
+    public SecretsProviderConfig(Scope configScope) {
         this.authMethod = configScope.get("auth-method", "kubernetes");
         this.serviceAccountFile = configScope.get("service-account-file",
                 "/var/run/secrets/kubernetes.io/serviceaccount/token");

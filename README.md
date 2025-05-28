@@ -5,7 +5,7 @@
 
 This project implements a [Keycloak Vault SPI](https://www.keycloak.org/server/vault) provider that integrates Keycloak with [OpenBao](https://openbao.org/) or [HashiCorp Vault](https://developer.hashicorp.com/vault).
 
-With this provider, Keycloak can retrieve secrets directly from OpenBao/Vault rather than storing them in its internal database, enhancing security through external secret management.
+With this provider, Keycloak can retrieve secrets from OpenBao/Vault instead of storing them in its backend database, allowing external secrets management to be used for sensitive information.
 The implementation leverages the [KV secrets engine](https://openbao.org/docs/secrets/kv/) for secure secret storage.
 
 

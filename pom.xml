@@ -15,6 +15,7 @@
   <modules>
     <module>bao-client</module>
     <module>secrets-provider</module>
+    <module>secrets-manager</module>
     <module>testing/test-utils</module>
   </modules>
 
@@ -29,6 +30,7 @@
     <version.certy>0.4.1</version.certy>
     <version.apache.commons.exec>1.4.0</version.apache.commons.exec>
     <version.jackson.core>2.19.0</version.jackson.core>
+    <version.smallrye.openapi>4.0.10</version.smallrye.openapi>
     <version.maven.clean.plugin>3.4.1</version.maven.clean.plugin>
     <version.maven.resources.plugin>3.3.1</version.maven.resources.plugin>
     <version.maven.compiler.plugin>3.14.0</version.maven.compiler.plugin>
@@ -64,6 +66,21 @@
         <version>${version.keycloak}</version>
       </dependency>
       <dependency>
+        <groupId>org.keycloak</groupId>
+        <artifactId>keycloak-core</artifactId>
+        <version>${version.keycloak}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.keycloak</groupId>
+        <artifactId>keycloak-server-spi</artifactId>
+        <version>${version.keycloak}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.keycloak</groupId>
+        <artifactId>keycloak-server-spi-private</artifactId>
+        <version>${version.keycloak}</version>
+      </dependency>
+      <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
         <version>${version.junit.jupiter}</version>
@@ -94,6 +111,11 @@
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
         <version>${version.jackson.core}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.smallrye</groupId>
+        <artifactId>smallrye-open-api-maven-plugin</artifactId>
+        <version>${version.smallrye.openapi}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
