@@ -43,20 +43,30 @@ class VaultSecretsProviderIT {
         bao.write("sys/auth/kubernetes", Map.of("type", "kubernetes"));
         bao.write("auth/kubernetes/config", Map.of("kubernetes_host", "https://kubernetes.default.svc"));
 
-        // Configure policy and role.
-        bao.write("sys/policy/my-policy", Map.of(
-            "policy", "path \\\"secret/data/*\\\" { capabilities = [\\\"read\\\"] }"));
+        // Enable kv1 secrets engine.
+        bao.write("sys/mounts/secretv1", Map.of("type", "kv"));
 
-        bao.write("auth/kubernetes/role/my-role", Map.of(
+        // Configure policy and role.
+        bao.write("sys/policy/reader", Map.of(
+            "policy", "path \\\"secretv1/*\\\" { capabilities = [\\\"read\\\"] }"));
+        bao.write("sys/policy/admin", Map.of(
+            "policy", "path \\\"secretv1/*\\\" { capabilities = [\\\"create\\\", \\\"read\\\", \\\"update\\\", \\\"patch\\\", \\\"delete\\\", \\\"list\\\"] }"));
+
+        bao.write("auth/kubernetes/role/reader", Map.of(
                 "bound_service_account_names", "*",
                 "bound_service_account_namespaces", "default",
-                "policies", "my-policy"
+                "policies", "reader"
+        ));
+        bao.write("auth/kubernetes/role/admin", Map.of(
+                "bound_service_account_names", "*",
+                "bound_service_account_namespaces", "default",
+                "policies", "admin"
         ));
 
         logger.info("Kubernetes authentication setup complete.");
 
         // Write client secret for Keycloak IdP configuration.
-        bao.kv2Put("secret", "keycloak/first", Map.of("client-secret", "my-client-secret"));
+        bao.kv1Upsert("secretv1", "keycloak/first/client-secret", Map.of("secret", "my-client-secret"));
     }
 
     @Test

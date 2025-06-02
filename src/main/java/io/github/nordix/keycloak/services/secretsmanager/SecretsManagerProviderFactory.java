@@ -29,13 +29,19 @@ public class SecretsManagerProviderFactory implements AdminRealmResourceProvider
     @Override
     public AdminRealmResourceProvider create(KeycloakSession session) {
         logger.debug("Creating SecretManagerProvider");
-        return new SecretsManagerProvider();
+        return new SecretsManagerProvider(config);
     }
 
     @Override
-    public void init(Scope config) {
-        this.config = new ProviderConfig(config, CMD_LINE_OPTION_PREFIX);
-        logger.debugv("Initializing secrets-manager with {0}", this.config);
+    public void init(Scope scopedConfig) {
+        config = new ProviderConfig(scopedConfig, CMD_LINE_OPTION_PREFIX);
+        logger.debugv("Initializing secrets-manager with {0}", config);
+        if (config.getAuthMethod() != "kubernetes") {
+            throw new IllegalArgumentException("Only 'kubernetes' auth method is supported by the secrets-manager.");
+        }
+        if (config.getKvVersion() != 1) {
+            throw new IllegalArgumentException("Only KV version 1 is supported by the secrets-manager.");
+        }
     }
 
     @Override

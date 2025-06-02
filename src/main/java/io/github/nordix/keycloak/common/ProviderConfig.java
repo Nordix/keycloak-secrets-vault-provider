@@ -35,7 +35,7 @@ public class ProviderConfig {
         this.address = configScope.get("address") != null ? URI.create(configScope.get("address")) : null;
         this.kvMount = configScope.get("kv-mount", "secret");
         this.kvPathPrefix = configScope.get("kv-path-prefix", "keycloak/%realm%");
-        this.kvVersion = Integer.parseInt(configScope.get("kv-version", "2"));
+        this.kvVersion = Integer.parseInt(configScope.get("kv-version", "1"));
         this.caCertificateFile = configScope.get("ca-certificate-file");
         this.role = configScope.get("role", "");
 

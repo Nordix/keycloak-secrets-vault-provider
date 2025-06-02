@@ -13,7 +13,10 @@ import java.net.URI;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.StreamSupport;
 
 import org.jboss.logging.Logger;
 
@@ -41,8 +44,19 @@ public class BaoClient {
         return this;
     }
 
+    /**
+     * Logs in to the Bao service using Kubernetes authentication.
+     *
+     * @param serviceAccountFile The path to the Kubernetes service account token
+     *                           file.
+     * @param role               The role to assume for the login.
+     * @return This BaoClient instance for method chaining.
+     * @throws IOException        if there is an error reading the service account
+     *                            file or sending the request.
+     * @throws BaoClientException if the login fails.
+     */
     public BaoClient loginWithKubernetes(String serviceAccountFile, String role) throws IOException {
-        logger.debug("Attempting to log in using Kubernetes auth method, service account token and role.");
+        logger.debugv("Attempting to log in using Kubernetes auth method, service account token and role {0}", role);
 
         String kubernetesSaToken = new String(Files.readAllBytes(Paths.get(serviceAccountFile)));
         if (kubernetesSaToken.isEmpty()) {
@@ -52,14 +66,18 @@ public class BaoClient {
 
         logger.debug("Service account token successfully read.");
 
+        Map<String, String> payload = new HashMap<>();
+        payload.put("role", role);
+        payload.put("jwt", kubernetesSaToken);
+
         HttpResponse<JsonNode> response = httpClient.sendRequest(
                 AUTH_URL_KUBERNETES,
                 "POST",
-                toJsonString(Map.of("role", role, "jwt", kubernetesSaToken)));
+                toJsonString(payload));
 
         if (!RestClient.isSuccessfulResponse(response)) {
             logger.errorv(
-                    "Login failed with response code: '{0}' body: '{1}'",
+                    "Login failed with response code: {0} body: {1}",
                     response.statusCode(),
                     response.body());
             throw new BaoClientException(
@@ -79,7 +97,7 @@ public class BaoClient {
         return RestClient.isSuccessfulResponse(response);
     }
 
-    public void write(String path, Map<String, String> data) {
+    public BaoClient write(String path, Map<String, String> data) {
         HttpResponse<JsonNode> response = httpClient.sendRequest(
                 "v1/" + path,
                 "POST",
@@ -87,15 +105,62 @@ public class BaoClient {
 
         if (!RestClient.isSuccessfulResponse(response)) {
             logger.errorv(
-                    "Failed to write data. Response code: '{0}' body: '{1}'",
+                    "Failed to write data. Response code: {0} body: {1}",
                     response.statusCode(),
                     response.body());
             throw new BaoClientException("Failed to write data to path '" + path + "': '" + response.body() + "'");
         }
         logger.debug("Successfully wrote data to path: '" + path + "'");
+        return this;
     }
 
-    public String kv1Get(String kvMountPath, String secretPath, String secretKey) {
+    /**
+     * Lists secret keys under a given path in KVv1 store.
+     *
+     * @param kvMountPath      The mount path of the KV store.
+     * @param secretPathPrefix The prefix path under which to list keys (e.g.
+     *                         "my-app").
+     * @return A list of secret keys.
+     * @throws BaoClientException if the operation fails.
+     */
+    public List<String> kv1ListKeys(String kvMountPath, String secretPathPrefix) {
+        if (secretPathPrefix == null) {
+            secretPathPrefix = "";
+        }
+        String listPath = "v1/" + kvMountPath + "/" + (secretPathPrefix.isEmpty() ? "" : secretPathPrefix + "/");
+
+        HttpResponse<JsonNode> response = httpClient.sendRequest(
+                listPath,
+                "LIST",
+                null);
+
+        if (response.statusCode() == 404) {
+            // If the path does not exist, return an empty list.
+            logger.debugv("No keys found at path: {0}. Returning empty list.", listPath);
+            return List.of();
+        }
+
+        if (!RestClient.isSuccessfulResponse(response)) {
+            logger.errorv(
+                    "Failed to list keys. Path: {0} Response code: {1} body: {2}",
+                    listPath, response.statusCode(), response.body());
+            throw new BaoClientException("Failed to list keys from path '" + secretPathPrefix + "': HTTP "
+                    + response.statusCode() + " Body: '" + response.body() + "'");
+        }
+
+        JsonNode keysNode = response.body().path("data").path("keys");
+        return fromJsonNodeToListString(keysNode);
+    }
+
+    /**
+     * Retrieves a secret from KVv1 store.
+     *
+     * @param kvMountPath The mount path of the KV store.
+     * @param secretPath  The full path to the secret (e.g. "my-app/secret").
+     * @return A map representing the secret data.
+     * @throws BaoClientException if the operation fails.
+     */
+    public Map<String, String> kv1Get(String kvMountPath, String secretPath) {
         HttpResponse<JsonNode> response = httpClient.sendRequest(
                 "v1/" + kvMountPath + "/" + secretPath,
                 "GET",
@@ -103,15 +168,94 @@ public class BaoClient {
 
         if (!RestClient.isSuccessfulResponse(response)) {
             logger.errorv(
-                    "Failed to read data. Response code: '{0}' body: '{1}'",
+                    "Failed to read data. Response code: {0} body: {1}",
                     response.statusCode(),
                     response.body());
-            throw new BaoClientException("Failed to read data from path '" + secretPath + "': '" + response.body() + "'");
+            throw new BaoClientException(
+                    "Failed to read data from path '" + secretPath + "': '" + response.body() + "'");
         }
-        return response.body().path("data").path(secretKey).asText();
+        return fromJsonNodeToMapStringString(response.body().path("data"));
     }
 
-    public String kv2Get(String kvMountPath, String secretPath, String secretKey) {
+    /**
+     * Insert or update a secret in KVv1 store.
+     *
+     * @param kvMountPath The mount path of the KV store.
+     * @param secretPath  The full path to the secret to insert or update (e.g.
+     *                    "my-app/secret").
+     * @param data        The key-value pairs to store in the secret.
+     * @return This BaoClient instance for method chaining.
+     * @throws BaoClientException if the operation fails.
+     */
+    public BaoClient kv1Upsert(String kvMountPath, String secretPath, Map<String, String> data) {
+        write(kvMountPath + "/" + secretPath, data);
+        return this;
+    }
+
+    /**
+     * Deletes a secret from KVv1 store.
+     *
+     * @param kvMountPath The mount path of the KV store.
+     * @param secretPath  The full path to the secret to delete (e.g.
+     *                    "my-app/secret").
+     * @throws BaoClientException if the operation fails.
+     */
+    public void kv1Delete(String kvMountPath, String secretPath) {
+        HttpResponse<JsonNode> response = httpClient.sendRequest(
+                "v1/" + kvMountPath + "/" + secretPath,
+                "DELETE",
+                null);
+
+        if (!RestClient.isSuccessfulResponse(response)) {
+            logger.errorv(
+                    "Failed to delete secret. Response code: {0} body: {1}",
+                    response.statusCode(),
+                    response.body());
+            throw new BaoClientException(
+                    "Failed to delete secret at path '" + secretPath + "': '" + response.body() + "'");
+        }
+        logger.debug("Successfully deleted secret at path: '" + secretPath + "'");
+    }
+
+    /**
+     * Lists secret keys under a given path in KVv2 store.
+     *
+     * @param kvMountPath      The mount path of the KV store.
+     * @param secretPathPrefix The prefix path under which to list keys (e.g.
+     *                         "my-app").
+     * @return A list of secret keys.
+     * @throws BaoClientException if the operation fails.
+     */
+    public List<String> kv2ListKeys(String kvMountPath, String secretPathPrefix) {
+        String listPath = "v1/" + kvMountPath + "/metadata/"
+                + (secretPathPrefix.isEmpty() ? "" : secretPathPrefix + "/");
+
+        HttpResponse<JsonNode> response = httpClient.sendRequest(
+                listPath,
+                "SCAN",
+                null);
+
+        if (!RestClient.isSuccessfulResponse(response)) {
+            logger.errorv(
+                    "Failed to list keys. Path: {0} Response code: {1} body: {2}",
+                    listPath, response.statusCode(), response.body());
+            throw new BaoClientException("Failed to list keys from path '" + secretPathPrefix + "': HTTP "
+                    + response.statusCode() + " Body: '" + response.body() + "'");
+        }
+
+        JsonNode keysNode = response.body().path("data").path("keys");
+        return fromJsonNodeToListString(keysNode);
+    }
+
+    /**
+     * Retrieves a secret from KVv2 store.
+     *
+     * @param kvMountPath The mount path of the KV store.
+     * @param secretPath  The full path to the secret (e.g. "my-app/secret").
+     * @return A map representing the secret data.
+     * @throws BaoClientException if the operation fails.
+     */
+    public Map<String, String> kv2Get(String kvMountPath, String secretPath) {
         HttpResponse<JsonNode> response = httpClient.sendRequest(
                 "v1/" + kvMountPath + "/data/" + secretPath,
                 "GET",
@@ -119,39 +263,39 @@ public class BaoClient {
 
         if (!RestClient.isSuccessfulResponse(response)) {
             logger.errorv(
-                    "Failed to read data. Response code: '{0}' body: '{1}'",
+                    "Failed to read data. Response code: {0} body: {1}",
                     response.statusCode(),
                     response.body());
-            throw new BaoClientException("Failed to read data from path '" + secretPath + "': '" + response.body() + "'");
+            throw new BaoClientException(
+                    "Failed to read data from path '" + secretPath + "': '" + response.body() + "'");
         }
 
         JsonNode rootNode = response.body();
         if (!rootNode.has("data") ||
-            !rootNode.path("data").has("data") ||
-            !rootNode.path("data").path("data").has(secretKey)) {
+                !rootNode.path("data").has("data")) {
 
-            logger.errorv("Secret key '{0}' not found at path '{1}'", secretKey, secretPath);
-            throw new BaoClientException("Secret key '" + secretKey + "' not found at path '" + secretPath + "'");
+            logger.errorv("Secret not found at path {1}", secretPath);
+            throw new BaoClientException("Secret not found at path '" + secretPath + "'");
         }
 
-        return rootNode.path("data").path("data").path(secretKey).asText();
+        return fromJsonNodeToMapStringString(rootNode.path("data").path("data"));
     }
 
-    public void kv2Put(String kvMountPath, String secretPath, Map<String, String> data) {
-        HttpResponse<JsonNode> response = httpClient.sendRequest(
-                "v1/" + kvMountPath + "/data/" + secretPath,
-                "POST",
-                "{\"data\":" + toJsonString(data) + "}");
-
-        if (!RestClient.isSuccessfulResponse(response)) {
-            logger.errorv(
-                    "Failed to write data. Response code: '{0}' body: '{1}'",
-                    response.statusCode(),
-                    response.body());
-            throw new BaoClientException("Failed to write data to path '" + secretPath + "': '" + response.body() + "'");
-        }
-        logger.debug("Successfully wrote data to path: '" + secretPath + "'");
+    /**
+     * Insert or update a secret in KVv2 store.
+     *
+     * @param kvMountPath The mount path of the KV store.
+     * @param secretPath  The full path to the secret (e.g. "my-app/secret").
+     * @param data        The key-value pairs to store in the secret.
+     * @return This BaoClient instance for method chaining.
+     * @throws BaoClientException if the operation fails.
+     */
+    public BaoClient kv2Upsert(String kvMountPath, String secretPath, Map<String, String> data) {
+        write(kvMountPath + "/data/" + secretPath, Map.of("data", toJsonString(data)));
+        return this;
     }
+
+    // Helper methods for JSON conversion.
 
     private String toJsonString(Map<String, String> data) {
         StringBuilder bodyBuilder = new StringBuilder("{");
@@ -167,13 +311,49 @@ public class BaoClient {
         return bodyBuilder.toString();
     }
 
+    private List<String> fromJsonNodeToListString(JsonNode arrayNode) {
+        if (arrayNode == null || !arrayNode.isArray()) {
+            return List.of(); // Return empty list if the node is null or not an array.
+        }
+        return StreamSupport.stream(arrayNode.spliterator(), false)
+                .map(JsonNode::asText)
+                .toList();
+    }
+
+    private Map<String, String> fromJsonNodeToMapStringString(JsonNode objectNode) {
+        Map<String, String> map = new HashMap<>();
+        if (objectNode == null || !objectNode.isObject()) {
+            return map; // Return empty map if the node is null or not an object.
+        }
+        objectNode.properties().forEach((entry) -> {
+            String key = entry.getKey();
+            String value = entry.getValue().asText();
+            map.put(key, value);
+        });
+        return map;
+    }
+
+    /**
+     * Exception class for handling client errors.
+     */
     public static class BaoClientException extends RuntimeException {
+        private int statusCode = -1;
+
         public BaoClientException(String message) {
             super(message);
         }
 
         public BaoClientException(String message, Throwable cause) {
             super(message, cause);
+        }
+
+        public BaoClientException(String message, int statusCode) {
+            super(message);
+            this.statusCode = statusCode;
+        }
+
+        public int getStatusCode() {
+            return statusCode;
         }
     }
 }

@@ -21,7 +21,7 @@
     <version.jboss.logging>3.6.1.Final</version.jboss.logging>
     <version.certy>0.4.1</version.certy>
     <version.apache.commons.exec>1.4.0</version.apache.commons.exec>
-    <version.jackson.core>2.19.0</version.jackson.core>
+    <version.jackson.core>2.18.0</version.jackson.core>
     <version.smallrye.openapi>4.0.10</version.smallrye.openapi>
     <version.maven.clean.plugin>3.4.1</version.maven.clean.plugin>
     <version.maven.resources.plugin>3.3.1</version.maven.resources.plugin>
@@ -144,11 +144,15 @@
           <configuration>
             <systemPropertyVariables>
               <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-              <logging.configuration>testing/configs/logging.properties</logging.configuration>
+              <logging.configuration>${project.basedir}/testing/configs/logging.properties</logging.configuration>
             </systemPropertyVariables>
           </configuration>
         </plugin>
-        <!-- Integration test config -->
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+        <!-- Integration test -->
         <plugin>
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>${version.maven.failsafe.plugin}</version>
@@ -161,7 +165,7 @@
               <configuration>
                 <systemPropertyVariables>
                   <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                  <logging.configuration>file:////testing/configs/logging.properties</logging.configuration>
+                  <logging.configuration>file:///${project.basedir}/testing/configs/logging.properties</logging.configuration>
                 </systemPropertyVariables>
               </configuration>
             </execution>
@@ -221,8 +225,8 @@
             </execution>
           </executions>
         </plugin>
-      </plugins>
-    </pluginManagement>
+    </plugins>
+
   </build>
 
 </project>

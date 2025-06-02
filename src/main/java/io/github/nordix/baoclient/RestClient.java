@@ -56,12 +56,14 @@ public class RestClient {
 
         headers.forEach(requestBuilder::header);
 
+        HttpRequest.BodyPublisher publisher;
         if ("POST".equalsIgnoreCase(method)) {
             Objects.requireNonNull(body, "Body must not be null for POST requests");
-            requestBuilder.POST(HttpRequest.BodyPublishers.ofString(body));
-        } else if ("GET".equalsIgnoreCase(method)) {
-            requestBuilder.GET();
+            publisher = HttpRequest.BodyPublishers.ofString(body);
+        } else {
+            publisher = HttpRequest.BodyPublishers.noBody();
         }
+        requestBuilder.method(method, publisher);
 
         HttpRequest request = requestBuilder.build();
         logger.debugv("Sending {0} request to {1}", method, request.uri());
