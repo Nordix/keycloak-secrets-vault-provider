@@ -5,26 +5,18 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>io.github.nordix</groupId>
-  <artifactId>keycloak-secrets-provider</artifactId>
+  <artifactId>secrets-provider</artifactId>
   <version>1.0-SNAPSHOT</version>
-  <packaging>pom</packaging>
 
-  <name>Vault SPI Provider for Keycloak</name>
+  <name>Vault SPI Provider and Secrets Manager Admin API Extension for Keycloak</name>
   <url>https://github.com/Nordix/keycloak-secrets-vault-provider</url>
-
-  <modules>
-    <module>bao-client</module>
-    <module>secrets-provider</module>
-    <module>secrets-manager</module>
-    <module>testing/test-utils</module>
-  </modules>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!-- Compatibility with Keycloak 20 to 25 -->
     <maven.compiler.release>17</maven.compiler.release>
     <version.keycloak>26.2.0</version.keycloak>
-    <version.junit.jupiter>5.12.2</version.junit.jupiter>
+    <version.junit.jupiter>5.13.0</version.junit.jupiter>
     <version.jboss.logmanager>3.1.2.Final</version.jboss.logmanager>
     <version.jboss.logging>3.6.1.Final</version.jboss.logging>
     <version.certy>0.4.1</version.certy>
@@ -48,38 +40,6 @@
   <!-- Manage dependency versions -->
   <dependencyManagement>
     <dependencies>
-      <!-- Submodule versions -->
-      <dependency>
-        <groupId>io.github.nordix</groupId>
-        <artifactId>baoclient</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.github.nordix</groupId>
-        <artifactId>testutils</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <!-- External dependency versions -->
-      <dependency>
-        <groupId>org.keycloak</groupId>
-        <artifactId>keycloak-services</artifactId>
-        <version>${version.keycloak}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.keycloak</groupId>
-        <artifactId>keycloak-core</artifactId>
-        <version>${version.keycloak}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.keycloak</groupId>
-        <artifactId>keycloak-server-spi</artifactId>
-        <version>${version.keycloak}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.keycloak</groupId>
-        <artifactId>keycloak-server-spi-private</artifactId>
-        <version>${version.keycloak}</version>
-      </dependency>
       <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
@@ -87,38 +47,74 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-      <dependency>
-        <groupId>fi.protonode</groupId>
-        <artifactId>certy</artifactId>
-        <version>${version.certy}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.logging</groupId>
-        <artifactId>jboss-logging</artifactId>
-        <version>${version.jboss.logging}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.logmanager</groupId>
-        <artifactId>jboss-logmanager</artifactId>
-        <version>${version.jboss.logmanager}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-exec</artifactId>
-        <version>${version.apache.commons.exec}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-        <version>${version.jackson.core}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.smallrye</groupId>
-        <artifactId>smallrye-open-api-maven-plugin</artifactId>
-        <version>${version.smallrye.openapi}</version>
-      </dependency>
     </dependencies>
   </dependencyManagement>
+
+  <dependencies>
+    <!-- External dependencies -->
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-services</artifactId>
+      <version>${version.keycloak}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-core</artifactId>
+      <version>${version.keycloak}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-server-spi</artifactId>
+      <version>${version.keycloak}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-server-spi-private</artifactId>
+      <version>${version.keycloak}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${version.jackson.core}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.logging</groupId>
+      <artifactId>jboss-logging</artifactId>
+      <version>${version.jboss.logging}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Test dependencies -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.logmanager</groupId>
+      <artifactId>jboss-logmanager</artifactId>
+      <version>${version.jboss.logmanager}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye</groupId>
+      <artifactId>smallrye-open-api-maven-plugin</artifactId>
+      <version>${version.smallrye.openapi}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-exec</artifactId>
+      <version>${version.apache.commons.exec}</version>
+      <scope>test</scope>
+    </dependency>
+
+
+  </dependencies>
 
   <!-- Manage Maven plugin versions and configuration for submodules -->
   <build>
@@ -148,8 +144,7 @@
           <configuration>
             <systemPropertyVariables>
               <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-              <logging.configuration>
-                ${maven.multiModuleProjectDirectory}/testing/configs/logging.properties</logging.configuration>
+              <logging.configuration>testing/configs/logging.properties</logging.configuration>
             </systemPropertyVariables>
           </configuration>
         </plugin>
@@ -166,9 +161,7 @@
               <configuration>
                 <systemPropertyVariables>
                   <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                  <logging.configuration>
-                    file:///${maven.multiModuleProjectDirectory}/testing/configs/logging.properties</logging.configuration>
-                  <maven.multiModuleProjectDirectory>${maven.multiModuleProjectDirectory}</maven.multiModuleProjectDirectory>
+                  <logging.configuration>file:////testing/configs/logging.properties</logging.configuration>
                 </systemPropertyVariables>
               </configuration>
             </execution>

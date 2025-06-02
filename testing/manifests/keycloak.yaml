@@ -52,8 +52,7 @@ spec:
             - "/bin/bash"
             - "-c"
             - |
-              cp /host/secrets-provider/target/secrets-provider*.jar /opt/keycloak/providers/secrets-provider.jar
-              cp /host/secrets-manager/target/secrets-manager*.jar /opt/keycloak/providers/secrets-manager.jar
+              cp /host/target/secrets-provider-*jar /opt/keycloak/providers/secrets-provider.jar
               mkdir -p /opt/keycloak/data/import
               cp /host/testing/configs/keycloak-realms/* /opt/keycloak/data/import/
               /opt/keycloak/bin/kc.sh start-dev \
