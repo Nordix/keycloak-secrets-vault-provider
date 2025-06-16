@@ -1,0 +1,166 @@
+{
+  "openapi" : "3.1.0",
+  "tags" : [ {
+    "name" : "Secrets Manager",
+    "description" : "Operations related to secrets management"
+  } ],
+  "components" : {
+    "schemas" : {
+      "SecretData" : {
+        "type" : "object",
+        "properties" : {
+          "secret" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string",
+            "readOnly" : true
+          },
+          "vault_id" : {
+            "type" : "string",
+            "readOnly" : true
+          }
+        }
+      }
+    }
+  },
+  "paths" : {
+    "/secrets-manager" : {
+      "get" : {
+        "summary" : "List all secrets",
+        "description" : "Returns a list of all secrets.",
+        "tags" : [ "Secrets Manager" ],
+        "responses" : {
+          "200" : {
+            "description" : "List of secrets"
+          }
+        }
+      }
+    },
+    "/secrets-manager/{id}" : {
+      "put" : {
+        "summary" : "Update a secret",
+        "description" : "Updates an existing secret.",
+        "tags" : [ "Secrets Manager" ],
+        "parameters" : [ {
+          "description" : "ID of the secret",
+          "required" : true,
+          "name" : "id",
+          "in" : "path",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "description" : "Secret data",
+          "required" : false,
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SecretData"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Secret updated"
+          },
+          "400" : {
+            "description" : "Bad request, e.g., missing data"
+          },
+          "404" : {
+            "description" : "Secret not found (if strict update is enforced)"
+          }
+        }
+      },
+      "get" : {
+        "summary" : "Get a secret",
+        "description" : "Retrieves a secret by its ID.",
+        "tags" : [ "Secrets Manager" ],
+        "parameters" : [ {
+          "description" : "ID of the secret",
+          "required" : true,
+          "name" : "id",
+          "in" : "path",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Secret found"
+          },
+          "404" : {
+            "description" : "Secret not found"
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Delete a secret",
+        "description" : "Deletes a secret by its ID.",
+        "tags" : [ "Secrets Manager" ],
+        "parameters" : [ {
+          "description" : "ID of the secret",
+          "required" : true,
+          "name" : "id",
+          "in" : "path",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Secret deleted"
+          },
+          "404" : {
+            "description" : "Secret not found"
+          }
+        }
+      },
+      "post" : {
+        "summary" : "Create a new secret",
+        "description" : "Creates a new secret.",
+        "tags" : [ "Secrets Manager" ],
+        "parameters" : [ {
+          "description" : "ID of the secret",
+          "required" : true,
+          "name" : "id",
+          "in" : "path",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "description" : "Secret data",
+          "required" : false,
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SecretData"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Secret created"
+          },
+          "400" : {
+            "description" : "Bad request, e.g., missing name or data"
+          },
+          "409" : {
+            "description" : "Secret already exists"
+          }
+        }
+      }
+    }
+  },
+  "info" : {
+    "title" : "Generated API",
+    "version" : "1.0-SNAPSHOT"
+  },
+  "servers" : [ {
+    "url" : "{{keycloakUrl}}/auth/realms/{{realmName}}"
+  } ]
+}
