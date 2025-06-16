@@ -88,6 +88,13 @@
       <version>${version.jboss.logging}</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>io.smallrye</groupId>
+      <artifactId>smallrye-open-api-core</artifactId>
+      <version>${version.smallrye.openapi}</version>
+      <scope>provided</scope>
+    </dependency>
+
 
     <!-- Test dependencies -->
     <dependency>
@@ -101,18 +108,11 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.smallrye</groupId>
-      <artifactId>smallrye-open-api-maven-plugin</artifactId>
-      <version>${version.smallrye.openapi}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-exec</artifactId>
       <version>${version.apache.commons.exec}</version>
       <scope>test</scope>
     </dependency>
-
 
   </dependencies>
 
@@ -162,12 +162,6 @@
                 <goal>integration-test</goal>
                 <goal>verify</goal>
               </goals>
-              <configuration>
-                <systemPropertyVariables>
-                  <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                  <logging.configuration>file:///${project.basedir}/testing/configs/logging.properties</logging.configuration>
-                </systemPropertyVariables>
-              </configuration>
             </execution>
           </executions>
         </plugin>
@@ -221,6 +215,27 @@
               <phase>test</phase>
               <goals>
                 <goal>report</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <!-- Generate openapi description -->
+        <!-- config example from https://github.com/smallrye/smallrye-open-api/discussions/1353 -->
+        <plugin>
+          <groupId>io.smallrye</groupId>
+          <artifactId>smallrye-open-api-maven-plugin</artifactId>
+          <version>${version.smallrye.openapi}</version>
+          <configuration>
+            <infoVersion>${project.version}</infoVersion>
+            <servers>{{keycloakUrl}}/auth/realms/{{realmName}}</servers>
+            <scanResourceClasses>
+                <io.github.nordix.keycloak.services.secretsmanager.SecretsManagerResource>/secrets-manager</io.github.nordix.keycloak.services.secretsmanager.SecretsManagerResource>
+            </scanResourceClasses>
+          </configuration>
+          <executions>
+            <execution>
+              <goals>
+                <goal>generate-schema</goal>
               </goals>
             </execution>
           </executions>

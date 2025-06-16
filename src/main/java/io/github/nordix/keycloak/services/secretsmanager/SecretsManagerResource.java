@@ -41,7 +41,6 @@ import java.security.SecureRandom;
 import java.util.List;
 import java.util.Map;
 
-// /admin/realms/{realm}/secrets-manager/secrets
 
 @Tag(name = "Secrets Manager", description = "Operations related to secrets management")
 @Produces(MediaType.APPLICATION_JSON)
