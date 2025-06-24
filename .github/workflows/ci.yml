@@ -22,14 +22,11 @@ jobs:
         run: |
           ./mvnw verify --batch-mode --update-snapshots -DskipTests
 
-      - name: Prepare Swagger UI directory
+      - name: Check for uncommitted changes in docs (OpenAPI)
         run: |
-          mkdir -p target/gh-pages/api
-          cp docs/swagger-ui.html target/gh-pages/api/index.html
-          cp target/generated/openapi.json target/gh-pages/api/
-
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          branch: gh-pages
-          folder: target/gh-pages
+          if ! git diff --exit-code -- docs; then
+            echo "::error file=docs::OpenAPI specs in 'docs' have changed. Please run the build locally and commit the updated files."
+            echo "Diff:"
+            git --no-pager diff -- docs
+            exit 1
+          fi

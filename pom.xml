@@ -13,8 +13,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <!-- Compatibility with Keycloak 20 to 25 -->
-    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.release>21</maven.compiler.release>
     <version.keycloak>26.2.0</version.keycloak>
     <version.junit.jupiter>5.13.0</version.junit.jupiter>
     <version.jboss.logmanager>3.1.2.Final</version.jboss.logmanager>
@@ -219,17 +218,20 @@
             </execution>
           </executions>
         </plugin>
-        <!-- Generate openapi description -->
+        <!-- Generate OpenAPI description -->
         <!-- config example from https://github.com/smallrye/smallrye-open-api/discussions/1353 -->
         <plugin>
           <groupId>io.smallrye</groupId>
           <artifactId>smallrye-open-api-maven-plugin</artifactId>
           <version>${version.smallrye.openapi}</version>
           <configuration>
+            <infoTitle>Keycloak Secrets Manager</infoTitle>
             <infoVersion>${project.version}</infoVersion>
-            <servers>{{keycloakUrl}}/auth/realms/{{realmName}}</servers>
+            <infoDescription>Manage per-realm Keycloak vault secrets stored in an external vault backend. API base URL is `https://&lt;KEYCLOAK_URL&gt;/auth/realms/&lt;REALM_NAME&gt;/secrets-manager/`</infoDescription>
+            <infoContactName>Keycloak Vault Provider for OpenBao and HashiCorp Vault</infoContactName>
+            <infoContactUrl>https://github.com/Nordix/keycloak-secrets-vault-provider</infoContactUrl>
             <scanResourceClasses>
-                <io.github.nordix.keycloak.services.secretsmanager.SecretsManagerResource>/secrets-manager</io.github.nordix.keycloak.services.secretsmanager.SecretsManagerResource>
+                <io.github.nordix.keycloak.services.secretsmanager.SecretsManagerResource>/secrets-manager/</io.github.nordix.keycloak.services.secretsmanager.SecretsManagerResource>
             </scanResourceClasses>
           </configuration>
           <executions>
@@ -237,6 +239,31 @@
               <goals>
                 <goal>generate-schema</goal>
               </goals>
+              <phase>process-classes</phase>
+          </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>${version.maven.resources.plugin}</version>
+          <executions>
+            <execution>
+              <id>copy-openapi-to-docs</id>
+              <goals>
+                <goal>copy-resources</goal>
+              </goals>
+              <phase>process-classes</phase>
+              <configuration>
+                <outputDirectory>${project.basedir}/docs</outputDirectory>
+                <resources>
+                  <resource>
+                    <directory>${project.basedir}/target/generated</directory>
+                    <includes>
+                      <include>openapi.*</include>
+                    </includes>
+                  </resource>
+                </resources>
+              </configuration>
             </execution>
           </executions>
         </plugin>

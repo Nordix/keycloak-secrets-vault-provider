@@ -34,11 +34,23 @@ public class BaoClient {
         this.httpClient = new RestClient(url);
     }
 
+    /**
+     * Sets the CA certificate file to be used by the HTTP client.
+     *
+     * @param caCertificateFile Path to the CA certificate file.
+     * @return This BaoClient instance for method chaining.
+     */
     public BaoClient withCaCertificateFile(String caCertificateFile) {
         httpClient.withCaCertificateFile(caCertificateFile);
         return this;
     }
 
+    /**
+     * Sets the authentication token to be used by the HTTP client.
+     *
+     * @param token The authentication token.
+     * @return This BaoClient instance for method chaining.
+     */
     public BaoClient withToken(String token) {
         httpClient.withHeader("X-Vault-Token", token);
         return this;
@@ -81,7 +93,8 @@ public class BaoClient {
                     response.statusCode(),
                     response.body());
             throw new BaoClientException(
-                    "Failed to log in to " + httpClient.getBaseUrl() + ". HTTP response code " + response.statusCode());
+                    "Failed to log in to " + httpClient.getBaseUrl() + ". HTTP response code " + response.statusCode(),
+                    response.statusCode());
         }
 
         logger.debug("Login successful. Token obtained.");
@@ -89,6 +102,11 @@ public class BaoClient {
         return this;
     }
 
+    /**
+     * Checks if OpenBao is up and running by querying the health endpoint.
+     *
+     * @return true if the service is ready, false otherwise.
+     */
     public boolean isReady() {
         HttpResponse<JsonNode> response = httpClient.sendRequest(
                 "v1/sys/health",
@@ -97,6 +115,14 @@ public class BaoClient {
         return RestClient.isSuccessfulResponse(response);
     }
 
+    /**
+     * Writes data to the specified path in OpenBao API using a POST request.
+     *
+     * @param path The path to write data to.
+     * @param data The key-value pairs to write.
+     * @return This BaoClient instance for method chaining.
+     * @throws BaoClientException if the operation fails.
+     */
     public BaoClient write(String path, Map<String, String> data) {
         HttpResponse<JsonNode> response = httpClient.sendRequest(
                 "v1/" + path,
@@ -108,7 +134,8 @@ public class BaoClient {
                     "Failed to write data. Response code: {0} body: {1}",
                     response.statusCode(),
                     response.body());
-            throw new BaoClientException("Failed to write data to path '" + path + "': '" + response.body() + "'");
+            throw new BaoClientException("Failed to write data to path '" + path + "': '" + response.body() + "'",
+                    response.statusCode());
         }
         logger.debug("Successfully wrote data to path: '" + path + "'");
         return this;
@@ -145,7 +172,7 @@ public class BaoClient {
                     "Failed to list keys. Path: {0} Response code: {1} body: {2}",
                     listPath, response.statusCode(), response.body());
             throw new BaoClientException("Failed to list keys from path '" + secretPathPrefix + "': HTTP "
-                    + response.statusCode() + " Body: '" + response.body() + "'");
+                    + response.statusCode() + " Body: '" + response.body() + "'", response.statusCode());
         }
 
         JsonNode keysNode = response.body().path("data").path("keys");
@@ -172,7 +199,8 @@ public class BaoClient {
                     response.statusCode(),
                     response.body());
             throw new BaoClientException(
-                    "Failed to read data from path '" + secretPath + "': '" + response.body() + "'");
+                    "Failed to read data from path '" + secretPath + "': '" + response.body() + "'",
+                    response.statusCode());
         }
         return fromJsonNodeToMapStringString(response.body().path("data"));
     }
@@ -212,7 +240,8 @@ public class BaoClient {
                     response.statusCode(),
                     response.body());
             throw new BaoClientException(
-                    "Failed to delete secret at path '" + secretPath + "': '" + response.body() + "'");
+                    "Failed to delete secret at path '" + secretPath + "': '" + response.body() + "'",
+                    response.statusCode());
         }
         logger.debug("Successfully deleted secret at path: '" + secretPath + "'");
     }
@@ -240,7 +269,7 @@ public class BaoClient {
                     "Failed to list keys. Path: {0} Response code: {1} body: {2}",
                     listPath, response.statusCode(), response.body());
             throw new BaoClientException("Failed to list keys from path '" + secretPathPrefix + "': HTTP "
-                    + response.statusCode() + " Body: '" + response.body() + "'");
+                    + response.statusCode() + " Body: '" + response.body() + "'", response.statusCode());
         }
 
         JsonNode keysNode = response.body().path("data").path("keys");
@@ -267,7 +296,8 @@ public class BaoClient {
                     response.statusCode(),
                     response.body());
             throw new BaoClientException(
-                    "Failed to read data from path '" + secretPath + "': '" + response.body() + "'");
+                    "Failed to read data from path '" + secretPath + "': '" + response.body() + "'",
+                    response.statusCode());
         }
 
         JsonNode rootNode = response.body();
@@ -275,7 +305,7 @@ public class BaoClient {
                 !rootNode.path("data").has("data")) {
 
             logger.errorv("Secret not found at path {1}", secretPath);
-            throw new BaoClientException("Secret not found at path '" + secretPath + "'");
+            throw new BaoClientException("Secret not found at path '" + secretPath + "'", response.statusCode());
         }
 
         return fromJsonNodeToMapStringString(rootNode.path("data").path("data"));
@@ -325,7 +355,7 @@ public class BaoClient {
         if (objectNode == null || !objectNode.isObject()) {
             return map; // Return empty map if the node is null or not an object.
         }
-        objectNode.properties().forEach((entry) -> {
+        objectNode.properties().forEach(entry -> {
             String key = entry.getKey();
             String value = entry.getValue().asText();
             map.put(key, value);
@@ -337,14 +367,16 @@ public class BaoClient {
      * Exception class for handling client errors.
      */
     public static class BaoClientException extends RuntimeException {
-        private int statusCode = -1;
+        private final int statusCode;
 
         public BaoClientException(String message) {
             super(message);
+            this.statusCode = -1;
         }
 
         public BaoClientException(String message, Throwable cause) {
             super(message, cause);
+            this.statusCode = -1;
         }
 
         public BaoClientException(String message, int statusCode) {

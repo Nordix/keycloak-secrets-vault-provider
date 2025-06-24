@@ -36,7 +36,7 @@ public class SecretsManagerProviderFactory implements AdminRealmResourceProvider
     public void init(Scope scopedConfig) {
         config = new ProviderConfig(scopedConfig, CMD_LINE_OPTION_PREFIX);
         logger.debugv("Initializing secrets-manager with {0}", config);
-        if (config.getAuthMethod() != "kubernetes") {
+        if (!config.getAuthMethod().equals("kubernetes")) {
             throw new IllegalArgumentException("Only 'kubernetes' auth method is supported by the secrets-manager.");
         }
         if (config.getKvVersion() != 1) {

@@ -72,12 +72,10 @@ public class RestClient {
             return getHttpClient().send(request, jsonBodyHandler());
         } catch (IOException e) {
             String errorMessage = "Failed to send " + request.method() + " to " + request.uri() + ": " + e.getCause();
-            logger.error(errorMessage, e);
             throw new RestClientException(errorMessage, e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             String errorMessage = "Request to " + request.uri() + " was interrupted: " + e.getMessage();
-            logger.error(errorMessage, e);
             throw new RestClientException(errorMessage, e);
         }
     }

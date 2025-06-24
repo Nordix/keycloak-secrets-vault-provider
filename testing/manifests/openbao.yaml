@@ -61,20 +61,80 @@ spec:
           ports:
             - containerPort: 8200
 
-          livenessProbe:
-            httpGet:
-              path: /v1/sys/health
-              port: 8200
+          #livenessProbe:
+          #  httpGet:
+          #    path: /v1/sys/health
+          #    port: 8200
 
-          readinessProbe:
-            httpGet:
-              path: /v1/sys/health
-              port: 8200
+          #readinessProbe:
+          #  httpGet:
+          #    path: /v1/sys/health
+          #    port: 8200
 
-          startupProbe:
-            failureThreshold: 600
-            httpGet:
-              path: /v1/sys/health
-              port: 8200
+          #startupProbe:
+          #  failureThreshold: 600
+          #  httpGet:
+          #    path: /v1/sys/health
+          #    port: 8200
+
+        - name: openbao-configurator
+          image: ghcr.io/openbao/openbao:2.2.1
+          command:
+            - "/bin/sh"
+            - "-x"
+            - /config/initialize.sh
+          env:
+            - name: BAO_ADDR
+              value: "http://localhost:8200"
+            - name: BAO_TOKEN
+              value: "my-root-token"
+          volumeMounts:
+            - name: openbao-config
+              mountPath: /config
 
       serviceAccountName: tokenreview
+
+      volumes:
+        - name: openbao-config
+          configMap:
+            name: openbao-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openbao-config
+data:
+  initialize.sh: |
+    # Wait for OpenBao to be ready
+    until bao status; do
+      echo "Waiting for OpenBao to be ready..."
+      sleep 2
+    done
+
+    # Enable kubernetes auth method.
+    bao auth enable kubernetes
+    bao write auth/kubernetes/config kubernetes_host=https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT
+
+    # Enable kv1 secrets engine.
+    bao secrets enable -path=secretv1 kv
+
+    # Configure policies.
+    bao policy write keycloak/reader - <<EOF
+    path "secretv1/*" {
+      capabilities = ["read"]
+    }
+    EOF
+    bao policy write keycloak/admin - <<EOF
+    path "secretv1/*" {
+      capabilities = ["create", "read", "update", "patch", "delete", "list"]
+    }
+    EOF
+
+    # Create roles.
+    bao write auth/kubernetes/role/reader bound_service_account_names="*" bound_service_account_namespaces="default" policies=keycloak/reader
+    bao write auth/kubernetes/role/admin bound_service_account_names="*" bound_service_account_namespaces="default" policies=keycloak/admin
+
+    # Sleep forever.
+    while true; do
+      sleep 999999999
+    done
