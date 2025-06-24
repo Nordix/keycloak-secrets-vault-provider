@@ -186,7 +186,9 @@ info:
   title: Keycloak Secrets Manager
   version: 1.0-SNAPSHOT
   description: Manage per-realm Keycloak vault secrets stored in an external vault
-    backend. API base URL is `https://<KEYCLOAK_URL>/auth/realms/<REALM_NAME>/secrets-manager/`
+    backend. API base URL is `https://<KEYCLOAK_URL>/auth/realms/<REALM_NAME>/secrets-manager/`.
+    Executing the requests require Keycloak bearer token with realm administrator
+    privileges.
   contact:
     name: Keycloak Vault Provider for OpenBao and HashiCorp Vault
     url: https://github.com/Nordix/keycloak-secrets-vault-provider

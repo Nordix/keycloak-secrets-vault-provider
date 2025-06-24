@@ -1,0 +1,6 @@
+{
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.test.config": {
+    "vmArgs": ["-Djava.util.logging.manager=org.jboss.logmanager.LogManager", "-Dlogging.configuration=file:${workspaceFolder}/testing/configs/logging.properties"]
+  }
+}

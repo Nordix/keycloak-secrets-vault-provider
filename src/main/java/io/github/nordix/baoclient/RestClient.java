@@ -57,12 +57,13 @@ public class RestClient {
         headers.forEach(requestBuilder::header);
 
         HttpRequest.BodyPublisher publisher;
-        if ("POST".equalsIgnoreCase(method)) {
-            Objects.requireNonNull(body, "Body must not be null for POST requests");
-            publisher = HttpRequest.BodyPublishers.ofString(body);
-        } else {
+
+        if ("GET".equalsIgnoreCase(method)) {
             publisher = HttpRequest.BodyPublishers.noBody();
+        } else {
+            publisher = HttpRequest.BodyPublishers.ofString(body != null ? body : "");
         }
+
         requestBuilder.method(method, publisher);
 
         HttpRequest request = requestBuilder.build();
@@ -84,6 +85,11 @@ public class RestClient {
         Objects.requireNonNull(key, "Header key must not be null");
         Objects.requireNonNull(value, "Header value must not be null");
         headers.put(key, value);
+        return this;
+    }
+
+    public RestClient removeAllHeaders() {
+        headers.clear();
         return this;
     }
 
