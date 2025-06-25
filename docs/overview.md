@@ -4,7 +4,7 @@
 
 By default, Keycloak stores sensitive configuration values, such as passwords or client secrets, in its SQL database in cleartext (Figure 1).
 
-![image](assets/secrets-in-database.drawio.png)
+![image](assets/secrets-in-database.drawio.svg)
 
 *Figure 1: Keycloak stores sensitive configuration values in its SQL database in cleartext.*
 <br><br>
@@ -13,8 +13,9 @@ Keycloak's Vault SPI (Service Provider Interface) is a plugin API that allows Ke
 When Keycloak needs to use a secret, it calls the plugin, which fetches the actual value from an external source at runtime.
 The data stored in the SQL database is only a reference to the secret, not the secret itself.
 Plugins can be implemented to fetch secrets from various external systems, such as OpenBao or HashiCorp Vault (Figure 2).
+See Keycloak's [Vault SPI documentation](https://www.keycloak.org/server/vault) for more details.
 
-![image](assets/secrets-via-vault-spi.drawio.png)
+![image](assets/secrets-via-vault-spi.drawio.svg)
 
 *Figure 2: Keycloak fetches sensitive configuration values from an external secrets manager via the Vault SPI.*
 <br><br>
@@ -43,7 +44,6 @@ Current use cases in Keycloak include:
 Client secrets for OAuth2 clients are not currently supported by the Vault SPI.
 A pull request has been submitted to upstream Keycloak to add support for OAuth2 clients: [keycloak#39650](https://github.com/keycloak/keycloak/pull/39650).
 
-See Keycloak's [Vault SPI documentation](https://www.keycloak.org/server/vault) for more details.
 
 ## Secrets Manager REST API Extension
 
@@ -56,6 +56,6 @@ See [API documentation](docs/api.md) for details on the REST API endpoints and u
 The endpoint is available at `https://<KEYCLOAK_URL>/auth/realms/<REALM_NAME>/secrets-manager/`.
 It requires realm admin permissions to access.
 
-![image](assets/secrets-manager.drawio.png)
+![image](assets/secrets-manager.drawio.svg)
 
 *Figure 3: Managing secrets using a custom "Secrets Manager" extension for the Keycloak Admin REST API.*
