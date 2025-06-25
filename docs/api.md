@@ -19,7 +19,7 @@ The Secrets Manager Admin API enables administrators to:
 
 Secrets are stored externally in OpenBao or HashiCorp Vault and referenced in Keycloak using the `${vault.<id>}` syntax.
 
-## OpenAPI Documentation
+## API Documentation
 
 For detailed request and response schemas, see
 
