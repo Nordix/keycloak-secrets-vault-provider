@@ -5,7 +5,7 @@ It allows users to manage secrets stored in OpenBao or HashiCorp Vault without r
 Details such as access URL, authentication method, and secrets engine configuration are provided via Keycloak's global configuration parameters. Applications that configure Keycloak do not need to know the details of the external secrets management system when managing secrets via the Admin REST API.
 
 Secrets managed by this API are intended for use with configuration data that supports Keycloak's Vault SPI.
-See the [Overview](docs/overview.md) for more details.
+See the [Overview](overview.md) for more details.
 
 ## Overview
 
