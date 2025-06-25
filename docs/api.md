@@ -29,10 +29,6 @@ To download the API specification files, use the following links:
 - [openapi.json](openapi.json)
 - [openapi.yaml](openapi.yaml)
 
-**Base URL:**
-```
-https://<KEYCLOAK_URL>/auth/realms/<REALM_NAME>/secrets-manager/
-```
 
 ## Naming Convention for Secrets
 
