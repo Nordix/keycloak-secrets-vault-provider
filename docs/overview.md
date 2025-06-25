@@ -54,7 +54,7 @@ Client secrets for OAuth2 clients are not currently supported but a pull request
 ## Secrets Manager REST API Extension
 
 This project extends Keycloak with a custom REST API extension that allows managing secrets via Keycloak's Admin REST API.
-When activated, the extension provides a "Secrets Manager" API endpoint that allows administrators to list, create, read, update, and delete secrets stored in OpenBao or HashiCorp Vault.
+When enabled, the extension provides a "Secrets Manager" API endpoint that allows administrators to list, create, read, update, and delete secrets stored in OpenBao or HashiCorp Vault.
 
 This allows users to interact with secrets without needing direct access to OpenBao or HashiCorp Vault, simplifying the management of vault secrets (Figure 3).
 See [API documentation](docs/api.md) for details on the REST API endpoints and usage.
@@ -65,3 +65,17 @@ At present, Secrets Manager is accessible only via the REST API and a user inter
 ![image](assets/secrets-manager.drawio.svg)
 
 *Figure 3: Managing secrets using a custom "Secrets Manager" extension for the Keycloak Admin REST API.*
+<br><br>
+
+Example workflow:
+
+1. The administrator stores the LDAP bind password by sending a POST request to `https://<KEYCLOAK_URL>/auth/realms/<REALM_NAME>/secrets-manager/ldap-bindpw`.
+   The Secrets Manager then writes the password to OpenBao, which encrypts it and stores it securely on disk.
+2. The administrator configures LDAP federation in Keycloak, setting the LDAP bind password field to `${vault.ldap-bindpw}`.
+   This stores only a reference to the secret in Keycloak's configuration (in the SQL database), not the actual password.
+3. When a user logs in to Keycloak, Keycloak needs to access the LDAP server.
+4. Keycloak resolves the `${vault.ldap-bindpw}` reference using the Vault SPI provider, which fetches the actual password from OpenBao.
+5. Keycloak uses the retrieved cleartext password to bind to the LDAP server for user federation.
+
+Steps 1 and 2 can be performed in either order. For example, the administrator may first configure LDAP federation with the `${vault.ldap-bindpw}` reference, and then store the password using the Secrets Manager.
+However, Keycloak will not be able to resolve the `${vault.ldap-bindpw}` reference until the secret has been stored using the Secrets Manager, therefore the configuration will not work until the secret is created.
