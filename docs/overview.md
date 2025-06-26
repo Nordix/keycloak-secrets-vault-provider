@@ -44,6 +44,8 @@ Example workflow (**Figure 2**):
 Vault secrets are automatically restricted to the specific Keycloak realm in which they are created.
 A secret named `ldap-bindpw` created in `my-realm` is not the same as `ldap-bindpw` in `your-realm`.
 
+The Vault SPI has some significant limitations:
+
 The Vault SPI is suitable for secrets used in configuration data, but not for dynamically generated secrets such as realm keys.
 Currently supported use cases for using `${vault.<id>}` references are:
 
