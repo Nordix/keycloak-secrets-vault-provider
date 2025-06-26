@@ -3,28 +3,28 @@
 > **⚠️ Note:**
 > This project is under development and not yet production-ready.
 
-This project extends Keycloak by implementing a [Vault SPI](https://www.keycloak.org/server/vault) provider, integrating with [OpenBao](https://openbao.org/) and [HashiCorp Vault](https://developer.hashicorp.com/vault).
+## Overview
 
-With this provider, Keycloak accesses secrets stored in OpenBao or Vault rather than in its SQL database.
-This enables encryption of sensitive data at rest by utilizing the [KV secrets engine](https://openbao.org/docs/secrets/kv/) for external secret management.
+This project provides two extensions for Keycloak that integrate with [OpenBao](https://openbao.org/) and [HashiCorp Vault](https://developer.hashicorp.com/vault):
 
-Key features:
+- Vault secrets provider
+- Secrets Manager REST API extension
 
-* Vault SPI provider for Keycloak to delegate secret storage and retrieval to OpenBao or Vault.
-* Admin REST API extension for managing secrets via Keycloak's REST API, removing the need for clients to access OpenBao or Vault directly.
+By implementing a [Vault SPI](https://www.keycloak.org/server/vault) provider, this extension allows Keycloak to retrieve secrets from OpenBao or HashiCorp Vault.
+It uses the [KV secrets engine](https://openbao.org/docs/secrets/kv/) as the secure storage for sensitive configuration data.
+This avoids storing sensitive data in the SQL database in cleartext.
+
+The project also implements a custom REST API extension called Secrets Manager for Keycloak's Admin REST API.
+This enables realm administrators to manage Vault SPI secret values through Keycloak, without needing direct access to OpenBao or HashiCorp Vault.
 
 ## Documentation
 
-The following documentation provides more information about the project and its usage:
+For more information, see:
 
-- For a high-level overview of the project, see [Overview](docs/overview.md).
-- For installation and configuration instructions, refer to [Deployment](docs/deployment.md).
-- For secrets management REST API, see the [API documentation](docs/api.md).
+- [Project Overview](docs/overview.md)
+- [Deployment Guide](docs/deployment.md)
+- [Secrets Manager REST API Documentation](docs/api.md)
 
 ## Contributing
 
-If you are interested in contributing, please read the [Development](docs/development.md) guide.
-
-## License
-
-This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
+Please refer to the [Development Guide](docs/development.md) for instructions.
