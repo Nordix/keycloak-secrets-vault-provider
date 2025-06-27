@@ -71,8 +71,8 @@ paths:
       tags:
       - Secrets Manager
       parameters:
-      - description: "ID of the secret to update. Must match the regex ^[a-zA-Z0-9_-]+$\
-          \ and must exist."
+      - description: "ID of the secret to update. Must match the regex ^[a-zA-Z0-9_\\\
+          .-]+$ and must exist."
         required: true
         name: id
         in: path
@@ -105,8 +105,8 @@ paths:
       tags:
       - Secrets Manager
       parameters:
-      - description: "ID of the secret to retrieve. Must match the regex ^[a-zA-Z0-9_-]+$\
-          \ and must exist."
+      - description: "ID of the secret to retrieve. Must match the regex ^[a-zA-Z0-9_\\\
+          .-]+$ and must exist."
         required: true
         name: id
         in: path
@@ -131,8 +131,8 @@ paths:
       tags:
       - Secrets Manager
       parameters:
-      - description: "ID of the secret to delete. Must match the regex ^[a-zA-Z0-9_-]+$\
-          \ and must exist."
+      - description: "ID of the secret to delete. Must match the regex ^[a-zA-Z0-9_\\\
+          .-]+$ and must exist."
         required: true
         name: id
         in: path
@@ -154,8 +154,8 @@ paths:
       tags:
       - Secrets Manager
       parameters:
-      - description: "ID of the secret to create. Must match the regex ^[a-zA-Z0-9_-]+$\
-          \ and must not already exist."
+      - description: "ID of the secret to create. Must match the regex ^[a-zA-Z0-9_\\\
+          .-]+$ and must not already exist."
         required: true
         name: id
         in: path
@@ -186,7 +186,7 @@ info:
   title: Keycloak Secrets Manager
   version: 1.0-SNAPSHOT
   description: Manage per-realm Keycloak vault secrets stored in an external vault
-    backend. API base URL is `https://<KEYCLOAK_URL>/auth/realms/<REALM_NAME>/secrets-manager/`.
+    backend. API base URL is `https://<KEYCLOAK_URL>/admin/realms/<REALM_NAME>/secrets-manager/`.
     Executing the requests require Keycloak bearer token with realm administrator
     privileges.
   contact:

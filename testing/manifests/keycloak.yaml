@@ -62,12 +62,12 @@ spec:
                 --spi-vault-secrets-provider-kv-mount=secretv1 \
                 --spi-vault-secrets-provider-kv-path-prefix="keycloak/%realm%" \
                 --spi-vault-secrets-provider-kv-version=1 \
-                --spi-vault-secrets-provider-role=reader \
+                --spi-vault-secrets-provider-role=keycloak-reader \
                 --spi-admin-realm-restapi-extension-secrets-manager-address=http://openbao:8200 \
                 --spi-admin-realm-restapi-extension-secrets-manager-kv-mount=secretv1 \
                 --spi-admin-realm-restapi-extension-secrets-manager-kv-path-prefix="keycloak/%realm%" \
                 --spi-admin-realm-restapi-extension-secrets-manager-kv-version=1 \
-                --spi-admin-realm-restapi-extension-secrets-manager-role=admin \
+                --spi-admin-realm-restapi-extension-secrets-manager-role=keycloak-admin \
                 --log-level=INFO,io.github.nordix:debug
           env:
             - name: KC_BOOTSTRAP_ADMIN_USERNAME

@@ -81,7 +81,7 @@
         "description" : "Updates an existing secret. If a secret value is not provided in the request body, a random secret will be generated.",
         "tags" : [ "Secrets Manager" ],
         "parameters" : [ {
-          "description" : "ID of the secret to update. Must match the regex ^[a-zA-Z0-9_-]+$ and must exist.",
+          "description" : "ID of the secret to update. Must match the regex ^[a-zA-Z0-9_\\.-]+$ and must exist.",
           "required" : true,
           "name" : "id",
           "in" : "path",
@@ -127,7 +127,7 @@
         "description" : "Retrieves a secret by its ID.",
         "tags" : [ "Secrets Manager" ],
         "parameters" : [ {
-          "description" : "ID of the secret to retrieve. Must match the regex ^[a-zA-Z0-9_-]+$ and must exist.",
+          "description" : "ID of the secret to retrieve. Must match the regex ^[a-zA-Z0-9_\\.-]+$ and must exist.",
           "required" : true,
           "name" : "id",
           "in" : "path",
@@ -162,7 +162,7 @@
         "description" : "Deletes a secret by its ID.",
         "tags" : [ "Secrets Manager" ],
         "parameters" : [ {
-          "description" : "ID of the secret to delete. Must match the regex ^[a-zA-Z0-9_-]+$ and must exist.",
+          "description" : "ID of the secret to delete. Must match the regex ^[a-zA-Z0-9_\\.-]+$ and must exist.",
           "required" : true,
           "name" : "id",
           "in" : "path",
@@ -190,7 +190,7 @@
         "description" : "Creates a new secret with the given ID. If a secret value is not provided in the request body, a random secret will be generated.",
         "tags" : [ "Secrets Manager" ],
         "parameters" : [ {
-          "description" : "ID of the secret to create. Must match the regex ^[a-zA-Z0-9_-]+$ and must not already exist.",
+          "description" : "ID of the secret to create. Must match the regex ^[a-zA-Z0-9_\\.-]+$ and must not already exist.",
           "required" : true,
           "name" : "id",
           "in" : "path",
@@ -236,7 +236,7 @@
   "info" : {
     "title" : "Keycloak Secrets Manager",
     "version" : "1.0-SNAPSHOT",
-    "description" : "Manage per-realm Keycloak vault secrets stored in an external vault backend. API base URL is `https://<KEYCLOAK_URL>/auth/realms/<REALM_NAME>/secrets-manager/`. Executing the requests require Keycloak bearer token with realm administrator privileges.",
+    "description" : "Manage per-realm Keycloak vault secrets stored in an external vault backend. API base URL is `https://<KEYCLOAK_URL>/admin/realms/<REALM_NAME>/secrets-manager/`. Executing the requests require Keycloak bearer token with realm administrator privileges.",
     "contact" : {
       "name" : "Keycloak Vault Provider for OpenBao and HashiCorp Vault",
       "url" : "https://github.com/Nordix/keycloak-secrets-vault-provider"

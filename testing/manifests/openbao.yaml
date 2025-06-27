@@ -105,7 +105,6 @@ metadata:
   name: openbao-config
 data:
   initialize.sh: |
-    # Wait for OpenBao to be ready
     until bao status; do
       echo "Waiting for OpenBao to be ready..."
       sleep 2
@@ -116,7 +115,7 @@ data:
     bao write auth/kubernetes/config kubernetes_host=https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT
 
     # Enable kv1 secrets engine.
-    bao secrets enable -path=secretv1 kv
+    bao secrets enable --path=secretv1 kv
 
     # Configure policies.
     bao policy write keycloak/reader - <<EOF
@@ -126,13 +125,13 @@ data:
     EOF
     bao policy write keycloak/admin - <<EOF
     path "secretv1/*" {
-      capabilities = ["create", "read", "update", "patch", "delete", "list"]
+      capabilities = ["create", "read", "update", "delete", "list"]
     }
     EOF
 
     # Create roles.
-    bao write auth/kubernetes/role/reader bound_service_account_names="*" bound_service_account_namespaces="default" policies=keycloak/reader
-    bao write auth/kubernetes/role/admin bound_service_account_names="*" bound_service_account_namespaces="default" policies=keycloak/admin
+    bao write auth/kubernetes/role/keycloak-reader bound_service_account_names="keycloak" bound_service_account_namespaces="default" policies=keycloak/reader
+    bao write auth/kubernetes/role/keycloak-admin bound_service_account_names="keycloak" bound_service_account_namespaces="default" policies=keycloak/admin
 
     # Sleep forever.
     while true; do

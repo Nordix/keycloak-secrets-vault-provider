@@ -64,7 +64,7 @@ public class SecretsManagerResource {
     /**
      * Regular expression for validating secret IDs.
      */
-    private static final String SECRET_ID_REGEX = "^[a-zA-Z0-9_-]+$";
+    private static final String SECRET_ID_REGEX = "^[a-zA-Z0-9_\\.-]+$";
 
     private final KeycloakSession session;
     private final RealmModel realm;

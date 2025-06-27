@@ -27,22 +27,22 @@ public class KubectlApplyExtension implements BeforeAllCallback {
 
     private final String baseDir = System.getProperty("maven.multiModuleProjectDirectory");
     private final String manifestFileName;
-    private final boolean skipEnvSetup;
+    private final boolean setupEnv;
 
     public KubectlApplyExtension(String manifestFileName) {
-        this(manifestFileName, KindExtension.isEnvSetupSkipped());
+        this(manifestFileName, isEnvSetupEnabled());
     }
 
-    public KubectlApplyExtension(String manifestFileName, boolean skipEnvSetup) {
+    public KubectlApplyExtension(String manifestFileName, boolean setupEnv) {
         this.manifestFileName = manifestFileName;
-        this.skipEnvSetup = skipEnvSetup;
+        this.setupEnv = setupEnv;
     }
 
     /**
-     * Check if environment setup should be skipped.
+     * Check if environment setup should be enabled.
      */
-    public static boolean isEnvSetupSkipped() {
-        return KindExtension.isEnvSetupSkipped();
+    public static boolean isEnvSetupEnabled() {
+        return System.getProperty("setupEnv") != null;
     }
 
     /**
@@ -50,8 +50,8 @@ public class KubectlApplyExtension implements BeforeAllCallback {
      */
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
-        if (skipEnvSetup) {
-            logger.info("Skipping kubectl deployment as skipEnvSetup is set");
+        if (!setupEnv) {
+            logger.info("Skipping kubectl deployment as setupEnv is not set");
             return;
         }
 

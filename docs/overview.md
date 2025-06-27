@@ -26,6 +26,9 @@ Plugins can be developed to retrieve secrets from different sources, including O
 The Vault SPI is read-only, meaning that Keycloak can only read secrets from it, not write them.
 The realm administrator is responsible for creating and storing secret values using external tools or systems outside of Keycloak.
 
+After enabling the Vault SPI, it is still possible to store sensitive configuration values in cleartext in the configuration.
+The use of `${vault.<id>}` references is optional and the realm administrator can choose to continue storing secrets in cleartext if desired.
+
 Example workflow (**Figure 2**):
 
 1. The realm administrator stores the LDAP bind password in the OpenBao KV secrets engine at the path `secret/keycloak/my-realm/ldap-bindpw`.
@@ -44,7 +47,11 @@ Example workflow (**Figure 2**):
 Vault secrets are automatically restricted to the specific Keycloak realm in which they are created.
 A secret named `ldap-bindpw` created in `my-realm` is not the same as `ldap-bindpw` in `your-realm`.
 
-The Vault SPI has some significant limitations:
+See Keycloak's [Vault SPI documentation](https://www.keycloak.org/server/vault) for more details.
+
+#### Limitations of the Vault SPI
+
+The Vault SPI does have some notable limitations:
 
 The Vault SPI is suitable for secrets used in configuration data, but not for dynamically generated secrets such as realm keys.
 Currently supported use cases for using `${vault.<id>}` references are:
@@ -56,7 +63,12 @@ Currently supported use cases for using `${vault.<id>}` references are:
 
 Client secrets for OAuth2 clients are not currently supported but a pull request has been submitted to upstream Keycloak: [keycloak#39650](https://github.com/keycloak/keycloak/pull/39650).
 
-See Keycloak's [Vault SPI documentation](https://www.keycloak.org/server/vault) for more details.
+Another limitation is visible in the example workflow (**Figure 2**): the secure storage of sensitive configuration data is not transparent for the user.
+The realm administrator must separately store the secret value and configure Keycloak with the reference to that value.
+For an optimal user experience, the realm administrator should not need to be aware of how secrets are stored.
+Keycloak would automatically manage the secure storage of sensitive configuration data behind the scenes.
+
+Finally, when secrets are stored externally, configuration data is distributed across multiple locations, which can complicate backups and migrations.
 
 ## Secrets Manager REST API Extension
 
@@ -69,7 +81,7 @@ See [API documentation](docs/api.md) for detailed usage.
 
 Example workflow (**Figure 3**):
 
-1. The realm administrator stores the LDAP bind password by sending a POST request to `https://<KEYCLOAK_URL>/auth/realms/my-realm/secrets-manager/ldap-bindpw`.
+1. The realm administrator stores the LDAP bind password by sending a POST request to `https://<KEYCLOAK_URL>/admin/realms/my-realm/secrets-manager/ldap-bindpw`.
    The Secrets Manager writes the password to OpenBao KV secrets engine at the path `secret/keycloak/my-realm/ldap-bindpw`, which encrypts it and stores it on disk.
 2. The realm administrator configures LDAP federation in Keycloak and sets the LDAP bind password to `${vault.ldap-bindpw}`.
    The reference is stored as part of Keycloak's configuration in the SQL database.

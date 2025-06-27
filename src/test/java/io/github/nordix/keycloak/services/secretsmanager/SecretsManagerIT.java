@@ -17,8 +17,8 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 import io.github.nordix.junit.KeycloakClientExtension;
-// import io.github.nordix.junit.KindExtension;
-// import io.github.nordix.junit.KubectlApplyExtension;
+import io.github.nordix.junit.KindExtension;
+import io.github.nordix.junit.KubectlApplyExtension;
 import io.github.nordix.junit.LoggingExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Assertions;
@@ -35,14 +35,11 @@ class SecretsManagerIT {
 
     private static Logger logger = Logger.getLogger(SecretsManagerIT.class);
 
-    // @RegisterExtension
-    // private static final KindExtension kind = new
-    // KindExtension("testing/configs/kind-cluster-config.yaml",
-    // "secrets-provider");
+    @RegisterExtension
+    private static final KindExtension kind = new KindExtension("testing/configs/kind-cluster-config.yaml", "secrets-provider");
 
-    // @RegisterExtension
-    // private static final KubectlApplyExtension deployment = new
-    // KubectlApplyExtension("testing/manifests");
+    @RegisterExtension
+    private static final KubectlApplyExtension deployment = new KubectlApplyExtension("testing/manifests");
 
     @RegisterExtension
     static final KeycloakClientExtension keycloak = new KeycloakClientExtension();

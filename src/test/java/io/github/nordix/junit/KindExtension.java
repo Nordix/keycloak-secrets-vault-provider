@@ -32,23 +32,23 @@ public class KindExtension implements BeforeAllCallback, AfterAllCallback {
     private final String baseDir = System.getProperty("maven.multiModuleProjectDirectory");
     private final String configFileName;
     private final String clusterName;
-    private final boolean skipEnvSetup;
+    private final boolean setupEnv;
 
     public KindExtension(String configFileName, String clusterName) {
-        this(configFileName, clusterName, isEnvSetupSkipped());
+        this(configFileName, clusterName, isEnvSetupEnabled());
     }
 
-    public KindExtension(String configFileName, String clusterName, boolean skipEnvSetup) {
+    public KindExtension(String configFileName, String clusterName, boolean setupEnv) {
         this.configFileName = configFileName;
         this.clusterName = clusterName;
-        this.skipEnvSetup = skipEnvSetup;
+        this.setupEnv = setupEnv;
     }
 
     /**
-     * Check if environment setup should be skipped.
+     * Check if environment setup should be enabled.
      */
-    public static boolean isEnvSetupSkipped() {
-        return System.getProperty("skipEnvSetup") != null;
+    public static boolean isEnvSetupEnabled() {
+        return System.getProperty("setupEnv") != null;
     }
 
     /**
@@ -56,8 +56,8 @@ public class KindExtension implements BeforeAllCallback, AfterAllCallback {
      */
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
-        if (skipEnvSetup) {
-            logger.info("Skipping Kind cluster creation as skipEnvSetup is set");
+        if (!setupEnv) {
+            logger.info("Skipping Kind cluster creation as setupEnv is not set");
             return;
         }
 
@@ -70,8 +70,8 @@ public class KindExtension implements BeforeAllCallback, AfterAllCallback {
      */
     @Override
     public void afterAll(ExtensionContext context) throws Exception {
-        if (skipEnvSetup) {
-            logger.info("Skipping Kind cluster deletion as skipEnvSetup is set");
+        if (!setupEnv) {
+            logger.info("Skipping Kind cluster deletion as setupEnv is not set");
             return;
         }
 

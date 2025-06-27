@@ -39,3 +39,112 @@ Vault secrets are automatically restricted to the specific Keycloak realm in whi
 A secret named `my-client` created in `realm1` is not the same as `my-client` in `realm2`.
 
 <sup>1</sup> Client secrets for OAuth2 clients are not currently supported but a pull request has been submitted to upstream Keycloak: [keycloak#39650](https://github.com/keycloak/keycloak/pull/39650).
+
+
+## Example Usage
+
+### Configure LDAP Federation with vault secret
+
+1. Create a secret with the LDAP bind password
+
+    ```bash
+    curl -X POST \
+      https://${KEYCLOAK_ADDR}/admin/realms/my-realm/secrets-manager/ldap.my-ldap-federation \
+      -H "Authorization: Bearer ${KEYCLOAK_TOKEN}" \
+      -H "Content-Type: application/json" \
+      -d '
+      {
+        "secret": "my-ldap-bind-password"
+      }'
+    ```
+
+2. Create the LDAP federation configuration using the secret reference
+
+    ```bash
+    curl -X POST \
+      https://${KEYCLOAK_ADDR}/admin/realms/my-realm/components \
+      -H "Authorization: Bearer ${KEYCLOAK_TOKEN}" \
+      -H "Content-Type: application/json" \
+      -d '
+      {
+        "config": {
+          "authType": [
+              "simple"
+          ],
+          "bindCredential": [
+              "${vault.ldap.my-ldap-federation}"
+          ],
+          "bindDn": [
+              "cn=admin,dc=example,dc=com"
+          ],
+          "connectionUrl": [
+              "ldap://localhost"
+          ],
+          "editMode": [
+              "WRITABLE"
+          ],
+          "enabled": [
+              "true"
+          ],
+          "usernameLDAPAttribute": [
+              "uid"
+          ],
+          "userObjectClasses": [
+              "inetOrgPerson, organizationalPerson"
+          ],
+          "usersDn": [
+              "ou=users,dc=example,dc=com"
+          ],
+          "vendor": [
+              "other"
+          ]
+        },
+        "id": "my-ldap-federation",
+        "name": "My LDAP Federation",
+        "providerId": "ldap",
+        "providerType": "org.keycloak.storage.UserStorageProvider"
+      }'
+    ```
+
+Steps (1) and (2) can be performed in any order.
+For example, the realm administrator may first configure LDAP federation with the `${vault.ldap.my-ldap-federation}` reference, and then store the password using the Secrets Manager.
+However, Keycloak will not be able to use the `${vault.ldap.my-ldap-federation}` reference until the secret has been stored using the Secrets Manager, therefore the configuration will not work until the secret is created.
+
+### Modify bind password for LDAP Federation with vault secret
+
+The LDAP federation bind password can be modified by updating the secret value in the Secrets Manager.
+
+```bash
+curl -X PUT \
+  https://${KEYCLOAK_ADDR}/admin/realms/my-realm/secrets-manager/ldap.my-ldap-federation \
+  -H "Authorization: Bearer ${KEYCLOAK_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '
+  {
+    "secret": "new-ldap-bind-password"
+  }'
+```
+
+There is no need to modify the LDAP federation configuration itself, as the reference `${vault.ldap.my-ldap-federation}` remains the same.
+
+
+### Delete LDAP Federation with vault secret
+
+1. Delete the federation configuration:
+
+    ```bash
+    curl -X DELETE \
+    https://${KEYCLOAK_ADDR}/admin/realms/my-realm/components/my-ldap-federation \
+    -H "Authorization: Bearer ${KEYCLOAK_TOKEN}"
+    ```
+
+2. Delete the secret from the Secrets Manager:
+
+    ```bash
+    curl -X DELETE \
+    https://${KEYCLOAK_ADDR}/admin/realms/my-realm/secrets-manager/ldap.my-ldap-federation \
+    -H "Authorization: Bearer ${KEYCLOAK_TOKEN}"
+    ```
+
+Similar to the previous example, steps (1) and (2) can be performed in any order.
+The LDAP federation configuration will stop working until the secret is deleted from the Secrets Manager.
