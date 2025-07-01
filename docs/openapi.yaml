@@ -65,9 +65,9 @@ paths:
           description: Internal server error
   /secrets-manager/{id}:
     put:
-      summary: Update a secret
-      description: "Updates an existing secret. If a secret value is not provided\
-        \ in the request body, a random secret will be generated."
+      summary: Create or update a secret
+      description: "Creates a new secret or updates an existing secret. If a secret\
+        \ value is not provided in the request body, a random secret will be generated."
       tags:
       - Secrets Manager
       parameters:
@@ -88,15 +88,13 @@ paths:
               $ref: "#/components/schemas/SecretRequest"
       responses:
         "200":
-          description: Secret updated
+          description: Secret created or updated
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/SecretResponse"
         "400":
           description: "Bad request, e.g., invalid ID format"
-        "404":
-          description: Secret not found
         "500":
           description: Internal server error
     get:
@@ -145,41 +143,6 @@ paths:
           description: Secret not found
         "400":
           description: "Bad request, e.g., invalid ID format"
-        "500":
-          description: Internal server error
-    post:
-      summary: Create a new secret
-      description: "Creates a new secret with the given ID. If a secret value is not\
-        \ provided in the request body, a random secret will be generated."
-      tags:
-      - Secrets Manager
-      parameters:
-      - description: "ID of the secret to create. Must match the regex ^[a-zA-Z0-9_\\\
-          .-]+$ and must not already exist."
-        required: true
-        name: id
-        in: path
-        schema:
-          type: string
-      requestBody:
-        description: "Optional secret data. If not provided, a random secret will\
-          \ be generated."
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/SecretRequest"
-      responses:
-        "201":
-          description: Secret created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SecretResponse"
-        "400":
-          description: "Bad request, e.g., invalid ID format"
-        "409":
-          description: Secret with the given ID already exists
         "500":
           description: Internal server error
 info:

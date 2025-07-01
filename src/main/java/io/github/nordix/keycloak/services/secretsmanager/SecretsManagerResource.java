@@ -35,7 +35,6 @@ import io.github.nordix.keycloak.common.ProviderConfig;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -161,50 +160,11 @@ public class SecretsManagerResource {
         }
     }
 
-    @POST
-    @Path("{id}")
-    @Operation(summary = "Create a new secret", description = "Creates a new secret with the given ID. If a secret value is not provided in the request body, a random secret will be generated.")
-    @APIResponse(responseCode = "201", description = "Secret created", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = SecretResponse.class)))
-    @APIResponse(responseCode = "400", description = "Bad request, e.g., invalid ID format")
-    @APIResponse(responseCode = "409", description = "Secret with the given ID already exists")
-    @APIResponse(responseCode = "500", description = "Internal server error")
-    public Response createSecret(
-            @Parameter(description = "ID of the secret to create. Must match the regex " + SECRET_ID_REGEX
-                    + " and must not already exist.", required = true) @PathParam("id") String id,
-            @RequestBody(description = "Optional secret data. If not provided, a random secret will be generated.", required = false) SecretRequest secretRequest) {
-
-        auth.realm().requireManageRealm();
-
-        validateSecretIdFormat(id);
-        validateSecretDoesNotExist(id);
-
-        String secretValue;
-        if (secretRequest == null || secretRequest.getSecret() == null || secretRequest.getSecret().isEmpty()) {
-            secretValue = createRandomSecretValue();
-            logger.debugv("No secret data provided, generating random secret for ID: {0}", id);
-        } else {
-            secretValue = secretRequest.getSecret();
-        }
-
-        try {
-            // Proceed to create the secret.
-            logger.debugv("Creating secret with ID: {0} in realm {1}", id, realm.getName());
-            baoClient.kv1Upsert(providerConfig.getKvMount(), fullPathToSecret(id),
-                    Map.of(SECRET_FIELD_NAME, secretValue));
-            SecretResponse secretResponse = new SecretResponse(id, secretValue);
-            return Response.status(Response.Status.CREATED).entity(secretResponse).build();
-        } catch (BaoClient.BaoClientException e) {
-            logger.errorv(e, "Error creating secret {0} for realm {1}", id, realm.getName());
-            throw ErrorResponse.error("Error creating secret", Response.Status.INTERNAL_SERVER_ERROR);
-        }
-    }
-
     @PUT
     @Path("{id}")
-    @Operation(summary = "Update a secret", description = "Updates an existing secret. If a secret value is not provided in the request body, a random secret will be generated.")
-    @APIResponse(responseCode = "200", description = "Secret updated", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = SecretResponse.class)))
+    @Operation(summary = "Create or update a secret", description = "Creates a new secret or updates an existing secret. If a secret value is not provided in the request body, a random secret will be generated.")
+    @APIResponse(responseCode = "200", description = "Secret created or updated", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = SecretResponse.class)))
     @APIResponse(responseCode = "400", description = "Bad request, e.g., invalid ID format")
-    @APIResponse(responseCode = "404", description = "Secret not found")
     @APIResponse(responseCode = "500", description = "Internal server error")
     public Response updateSecret(
             @Parameter(description = "ID of the secret to update. Must match the regex " + SECRET_ID_REGEX
@@ -292,28 +252,6 @@ public class SecretsManagerResource {
         }
     }
 
-    /**
-     * Validates that a secret with the given ID does not already exist.
-     * Throws an error response if the secret exists or if there is a backend error.
-     *
-     * @param id the secret ID
-     */
-    private void validateSecretDoesNotExist(String id) {
-        try {
-            baoClient.kv1Get(providerConfig.getKvMount(), fullPathToSecret(id));
-            String errorMessage = "Secret with ID '" + id + "' already exists.";
-            throw ErrorResponse.error(errorMessage, Response.Status.CONFLICT);
-        } catch (BaoClient.BaoClientException e) {
-            // Check if "not found" (404) which means the secret does not exist.
-            if (e.getStatusCode() == 404) {
-                return;
-            }
-            // Some other error occurred, re-throw the exception.
-            logger.errorv(e, "Error checking existence of secret {0} for realm {1}", id, realm.getName());
-            throw ErrorResponse.error("Error communicating with backend", Response.Status.INTERNAL_SERVER_ERROR);
-        }
-    }
-
     private static String createRandomSecretValue() {
         var random = new SecureRandom();
         return random.ints(60, 0, SECRET_CHARS.length())
@@ -352,6 +290,7 @@ public class SecretsManagerResource {
         private String secret;
 
         public SecretRequest() {
+            // Default constructor.
         }
 
         public String getSecret() {

@@ -8,7 +8,7 @@ By default, Keycloak stores sensitive configuration values, such as passwords or
 
 Example workflow (**Figure 1**):
 
-1. The realm administrator configures LDAP federation in Keycloak and sends the LDAP bind password as part of the configuration.
+1. The realm administrator configures e.g. LDAP federation in Keycloak and sends the LDAP bind password as part of the configuration.
 2. The password is stored in the SQL database in cleartext.
 
 ![image](assets/secrets-in-database.drawio.svg)
@@ -22,6 +22,7 @@ It is a plugin API that allows realm administrators to reference secrets using a
 The data stored in the SQL database is only a reference to the secret, not the secret itself.
 When Keycloak needs to use the secret, it calls the plugin, which fetches the actual value from an external source.
 Plugins can be developed to retrieve secrets from different sources, including OpenBao and the HashiCorp Vault KV secrets engine which are supported by this project.
+For use cases where secret references can be used, see [Limitations of the Vault SPI](#limitations-of-the-vault-spi).
 
 The Vault SPI is read-only, meaning that Keycloak can only read secrets from it, not write them.
 The realm administrator is responsible for creating and storing secret values using external tools or systems outside of Keycloak.
@@ -44,9 +45,6 @@ Example workflow (**Figure 2**):
 **Figure 2:** Keycloak fetches sensitive configuration values from OpenBao.
 <br><br>
 
-Vault secrets are automatically restricted to the specific Keycloak realm in which they are created.
-A secret named `ldap-bindpw` created in `my-realm` is not the same as `ldap-bindpw` in `your-realm`.
-
 See Keycloak's [Vault SPI documentation](https://www.keycloak.org/server/vault) for more details.
 
 #### Limitations of the Vault SPI
@@ -60,15 +58,14 @@ Currently supported use cases for using `${vault.<id>}` references are:
 - Identity brokering: OAuth2 identity provider client secret
 - Social login: Twitter identity provider client secret
 - Email confirmations: SMTP server password
-
-Client secrets for OAuth2 clients are not currently supported but a pull request has been submitted to upstream Keycloak: [keycloak#39650](https://github.com/keycloak/keycloak/pull/39650).
+- Client secrets for OAuth2 clients are not currently supported but a pull request has been submitted to upstream Keycloak: [keycloak#39650](https://github.com/keycloak/keycloak/pull/39650).
 
 Another limitation is visible in the example workflow (**Figure 2**): the secure storage of sensitive configuration data is not transparent for the user.
 The realm administrator must separately store the secret value and configure Keycloak with the reference to that value.
 For an optimal user experience, the realm administrator should not need to be aware of how secrets are stored.
 Keycloak would automatically manage the secure storage of sensitive configuration data behind the scenes.
 
-Finally, when secrets are stored externally, configuration data is distributed across multiple locations, which can complicate backups and migrations.
+Finally, when secrets are stored externally, Keycloak configuration is distributed across two databases, which can complicate backups and upgrades/rollbacks.
 
 ## Secrets Manager REST API Extension
 
@@ -81,7 +78,7 @@ See [API documentation](docs/api.md) for detailed usage.
 
 Example workflow (**Figure 3**):
 
-1. The realm administrator stores the LDAP bind password by sending a POST request to `https://<KEYCLOAK_URL>/admin/realms/my-realm/secrets-manager/ldap-bindpw`.
+1. The realm administrator stores the LDAP bind password by sending a PUT request to `https://<KEYCLOAK_URL>/admin/realms/my-realm/secrets-manager/ldap-bindpw`.
    The Secrets Manager writes the password to OpenBao KV secrets engine at the path `secret/keycloak/my-realm/ldap-bindpw`, which encrypts it and stores it on disk.
 2. The realm administrator configures LDAP federation in Keycloak and sets the LDAP bind password to `${vault.ldap-bindpw}`.
    The reference is stored as part of Keycloak's configuration in the SQL database.
@@ -90,12 +87,16 @@ Example workflow (**Figure 3**):
 5. Keycloak uses the cleartext password to bind to the LDAP server for user federation.
 
 Steps (1) and (2) can be performed in any order.
-For example, the realm administrator may first configure LDAP federation with the `${vault.ldap-bindpw}` reference, and then store the password using the Secrets Manager.
-However, Keycloak will not be able to use the `${vault.ldap-bindpw}` reference until the secret has been stored using the Secrets Manager, therefore the configuration will not work until the secret is created.
+The realm administrator may first configure LDAP federation with the `${vault.ldap-bindpw}` reference, and then store the password using the Secrets Manager.
+However, Keycloak will not be able to use the `${vault.ldap-bindpw}` reference until the secret has been stored using the Secrets Manager.
+Therefore the configuration will not work until the secret is created.
 
 ![image](assets/secrets-manager.drawio.svg)
 
 **Figure 3:** Using a Secrets Manager extension for the Keycloak Admin REST API.
 <br><br>
+
+Secrets are automatically restricted to the specific Keycloak realm in which they are created.
+A secret named `ldap-bindpw` created in `my-realm` is not the same as `ldap-bindpw` in `your-realm`.
 
 Secrets Manager is accessible only via the REST API and a user interface within Keycloak Admin Console is not available.
