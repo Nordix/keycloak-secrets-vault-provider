@@ -81,6 +81,22 @@ public class RestClient {
         }
     }
 
+    public HttpResponse<JsonNode> sendRequest(String endpoint, String method, Map<String, Object> body) {
+        String bodyString = null;
+        if (body != null) {
+            try {
+                bodyString = OBJECT_MAPPER.writeValueAsString(body);
+            } catch (IOException e) {
+                throw new RestClientException("Failed to serialize body to JSON", e);
+            }
+        }
+        return sendRequest(endpoint, method, bodyString);
+    }
+
+    public HttpResponse<JsonNode> sendRequest(String endpoint, String method) {
+        return sendRequest(endpoint, method, (String) null);
+    }
+
     public RestClient withHeader(String key, String value) {
         Objects.requireNonNull(key, "Header key must not be null");
         Objects.requireNonNull(value, "Header value must not be null");

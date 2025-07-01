@@ -16,66 +16,60 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-import io.github.nordix.junit.KeycloakClientExtension;
+import io.github.nordix.junit.KeycloakRestClientExtension;
 import io.github.nordix.junit.KindExtension;
 import io.github.nordix.junit.KubectlApplyExtension;
 import io.github.nordix.junit.LoggingExtension;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Assertions;
 
 import java.net.http.HttpResponse;
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
-import io.github.nordix.baoclient.RestClient;
 
 @ExtendWith(LoggingExtension.class)
 class SecretsManagerIT {
 
     private static Logger logger = Logger.getLogger(SecretsManagerIT.class);
 
+    private static final String KEYCLOAK_BASE_URL = "http://127.0.0.127:8080";
+
+    // Create a Kind cluster.
     @RegisterExtension
     private static final KindExtension kind = new KindExtension("testing/configs/kind-cluster-config.yaml", "secrets-provider");
 
+    // Deploy Keycloak and OpenBao.
     @RegisterExtension
     private static final KubectlApplyExtension deployment = new KubectlApplyExtension("testing/manifests");
 
-    @RegisterExtension
-    static final KeycloakClientExtension keycloak = new KeycloakClientExtension();
-
     // Delete all secrets after each test.
     @RegisterExtension
-    static final SecretsCleanupExtension secretsCleanup = new SecretsCleanupExtension();
+    private final SecretsCleanupExtension secretsCleanup = new SecretsCleanupExtension();
 
-    static final String REALM = "first";
-    static final String API_PATH = "/admin/realms/" + REALM + "/secrets-manager";
+    @RegisterExtension
+    private final KeycloakRestClientExtension keycloakAdminClient = new KeycloakRestClientExtension(KEYCLOAK_BASE_URL);
 
-    RestClient restClient;
-
-    @BeforeEach
-    void setUp() {
-        restClient = keycloak.getClient();
-    }
+    private static final String REALM = "first";
+    private static final String API_PATH = "/admin/realms/" + REALM + "/secrets-manager";
 
     @Test
-    void testCreateAndReadSecret() {
+    void testCreateWithValueAndReadSecret() {
         String secretId = "test-secret-1";
         String vaultId = "${vault.test-secret-1}";
         String secretValue = "my-secret-value-1";
 
         // Create secret with given secret value.
-        String createBody = "{\"secret\":\"" + secretValue + "\"}";
-        HttpResponse<JsonNode> createResp = restClient
-                .sendRequest(API_PATH + "/" + secretId, "POST", createBody);
+        HttpResponse<JsonNode> createResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId, "PUT", Map.of("secret", secretValue));
 
-        Assertions.assertEquals(201, createResp.statusCode());
+        Assertions.assertEquals(200, createResp.statusCode());
         Assertions.assertEquals(secretId, createResp.body().get("id").asText());
         Assertions.assertEquals(secretValue, createResp.body().get("secret").asText());
 
         // Read secret.
-        HttpResponse<JsonNode> getResp = restClient
-                .sendRequest(API_PATH + "/" + secretId, "GET", null);
+        HttpResponse<JsonNode> getResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId, "GET");
 
         Assertions.assertEquals(200, getResp.statusCode());
         Assertions.assertEquals(secretId, getResp.body().get("id").asText());
@@ -85,45 +79,61 @@ class SecretsManagerIT {
 
     @Test
     void testCreateWithRandomValue() {
-        String secretId = "test-secret-random";
-        String vaultId = "${vault.test-secret-random}";
+        // Create secret with random value by submitting empty body.
+        String secretId1 = "test-secret-random1";
+        String vaultId1 = "${vault.test-secret-random1}";
 
-        // Create secret with random value.
-        HttpResponse<JsonNode> createResp = restClient
-                .sendRequest(API_PATH + "/" + secretId, "POST", null);
+        HttpResponse<JsonNode> createResp1 = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId1, "PUT");
 
-        Assertions.assertEquals(201, createResp.statusCode());
-        Assertions.assertTrue(createResp.body().has("id"));
-        Assertions.assertEquals(vaultId, createResp.body().get("vault_id").asText());
-        Assertions.assertTrue(createResp.body().has("secret"));
-        Assertions.assertNotNull(createResp.body().get("secret").asText());
-        Assertions.assertEquals(60, createResp.body().get("secret").asText().length());
-        Assertions.assertEquals(secretId, createResp.body().get("id").asText());
+        Assertions.assertEquals(200, createResp1.statusCode());
+        Assertions.assertTrue(createResp1.body().has("id"));
+        Assertions.assertEquals(vaultId1, createResp1.body().get("vault_id").asText());
+        Assertions.assertTrue(createResp1.body().has("secret"));
+        Assertions.assertNotNull(createResp1.body().get("secret").asText());
+        Assertions.assertEquals(60, createResp1.body().get("secret").asText().length());
+        Assertions.assertEquals(secretId1, createResp1.body().get("id").asText());
+
+        // Create secret with random value by submitting empty JSON document.
+        String secretId2 = "test-secret-random2";
+        String vaultId2 = "${vault.test-secret-random2}";
+
+        HttpResponse<JsonNode> createResp2 = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId2, "PUT", "{}");
+
+        Assertions.assertEquals(200, createResp2.statusCode());
+        Assertions.assertTrue(createResp2.body().has("id"));
+        Assertions.assertEquals(vaultId2, createResp2.body().get("vault_id").asText());
+        Assertions.assertTrue(createResp2.body().has("secret"));
+        Assertions.assertNotNull(createResp2.body().get("secret").asText());
+        Assertions.assertEquals(60, createResp2.body().get("secret").asText().length());
+        Assertions.assertEquals(secretId2, createResp2.body().get("id").asText());
+
     }
 
     @Test
-    void testUpdateSecret() {
+    void testUpdateSecretWithValue() {
         String secretId = "test-secret-update";
         String initialValue = "init-value";
         String updatedValue = "updated-value";
 
         // Create secret.
-        HttpResponse<JsonNode> createResp = restClient.sendRequest(API_PATH + "/" + secretId, "POST",
-                "{\"secret\":\"" + initialValue + "\"}");
+        HttpResponse<JsonNode> createResp = keycloakAdminClient.sendRequest(API_PATH + "/" + secretId, "PUT",
+                Map.of("secret", initialValue));
 
-        Assertions.assertEquals(201, createResp.statusCode());
+        Assertions.assertEquals(200, createResp.statusCode());
 
         // Update secret.
-        HttpResponse<JsonNode> updateResp = restClient
-                .sendRequest(API_PATH + "/" + secretId, "PUT", "{\"secret\":\"" + updatedValue + "\"}");
+        HttpResponse<JsonNode> updateResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId, "PUT", Map.of("secret", updatedValue));
 
         Assertions.assertEquals(200, updateResp.statusCode());
         Assertions.assertEquals(secretId, updateResp.body().get("id").asText());
         Assertions.assertEquals(updatedValue, updateResp.body().get("secret").asText());
 
         // Read secret.
-        HttpResponse<JsonNode> getResp = restClient
-                .sendRequest(API_PATH + "/" + secretId, "GET", null);
+        HttpResponse<JsonNode> getResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId, "GET");
 
         Assertions.assertEquals(200, getResp.statusCode());
         Assertions.assertEquals(updatedValue, getResp.body().get("secret").asText());
@@ -134,15 +144,15 @@ class SecretsManagerIT {
         String secretId = "test-secret-random-update";
 
         // Create secret.
-        HttpResponse<JsonNode> createResp = restClient.sendRequest(API_PATH + "/" + secretId, "POST", null);
+        HttpResponse<JsonNode> createResp = keycloakAdminClient.sendRequest(API_PATH + "/" + secretId, "PUT");
 
-        Assertions.assertEquals(201, createResp.statusCode());
+        Assertions.assertEquals(200, createResp.statusCode());
 
         String initialRandomValue = createResp.body().get("secret").asText();
 
         // Update secret.
-        HttpResponse<JsonNode> updateResp = restClient
-                .sendRequest(API_PATH + "/" + secretId, "PUT", null);
+        HttpResponse<JsonNode> updateResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId, "PUT");
 
         Assertions.assertEquals(200, updateResp.statusCode());
 
@@ -158,18 +168,18 @@ class SecretsManagerIT {
         String secretValue = "to-be-deleted";
 
         // Create secret.
-        restClient
-                .sendRequest(API_PATH + "/" + secretId, "POST", "{\"secret\":\"" + secretValue + "\"}");
+        keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId, "PUT", Map.of("secret", secretValue));
 
         // Delete secret.
-        HttpResponse<JsonNode> deleteResp = restClient
-                .sendRequest(API_PATH + "/" + secretId, "DELETE", null);
+        HttpResponse<JsonNode> deleteResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId, "DELETE");
 
         Assertions.assertEquals(204, deleteResp.statusCode());
 
         // Try to get deleted secret.
-        HttpResponse<JsonNode> getResp = restClient
-                .sendRequest(API_PATH + "/" + secretId, "GET", null);
+        HttpResponse<JsonNode> getResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId, "GET");
 
         Assertions.assertEquals(404, getResp.statusCode());
     }
@@ -180,14 +190,14 @@ class SecretsManagerIT {
         String secretId2 = "test-secret-list-2";
 
         // Create secrets.
-        restClient
-                .sendRequest(API_PATH + "/" + secretId1, "POST", "{\"secret\":\"val1\"}");
-        restClient
-                .sendRequest(API_PATH + "/" + secretId2, "POST", "{\"secret\":\"val2\"}");
+        keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId1, "PUT", Map.of("secret", "val1"));
+        keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId2, "PUT", Map.of("secret", "val2"));
 
         // List secrets.
-        HttpResponse<JsonNode> listResp = restClient
-                .sendRequest(API_PATH, "GET", null);
+        HttpResponse<JsonNode> listResp = keycloakAdminClient
+                .sendRequest(API_PATH, "GET");
 
         Assertions.assertEquals(200, listResp.statusCode());
         JsonNode idsNode = listResp.body().get("secret_ids");
@@ -203,49 +213,54 @@ class SecretsManagerIT {
         String nonExistentId = "non-existent-secret";
 
         // Try to get non-existent secret.
-        HttpResponse<JsonNode> getResp = restClient
-                .sendRequest(API_PATH + "/" + nonExistentId, "GET", null);
+        HttpResponse<JsonNode> getResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + nonExistentId, "GET");
 
         Assertions.assertEquals(404, getResp.statusCode());
     }
 
     @Test
     void testInvalidSecretId() {
-        String invalidSecretId = ".not.valid.id.";
+        String invalidSecretId = "not%20a%20valid%20id";
 
-        // Create with invalid ID.
-        HttpResponse<JsonNode> createResp = restClient
-                .sendRequest(API_PATH + "/" + invalidSecretId, "POST", "{\"secret\":\"new-value\"}");
-        Assertions.assertEquals(400, createResp.statusCode());
-
-        // Update with invalid ID.
-        HttpResponse<JsonNode> updateResp = restClient
-                .sendRequest(API_PATH + "/" + invalidSecretId, "PUT", "{\"secret\":\"new-value\"}");
-        Assertions.assertEquals(400, updateResp.statusCode());
+        // Put with invalid ID.
+        HttpResponse<JsonNode> putResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + invalidSecretId, "PUT");
+        Assertions.assertEquals(400, putResp.statusCode());
 
         // Delete with invalid ID.
-        HttpResponse<JsonNode> deleteResp = restClient
-                .sendRequest(API_PATH + "/" + invalidSecretId, "DELETE", null);
+        HttpResponse<JsonNode> deleteResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + invalidSecretId, "DELETE");
         Assertions.assertEquals(400, deleteResp.statusCode());
 
-        // Try to get invalid ID.
-        HttpResponse<JsonNode> getResp = restClient
-                .sendRequest(API_PATH + "/" + invalidSecretId, "GET", null);
+        // Get with invalid ID.
+        HttpResponse<JsonNode> getResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + invalidSecretId, "GET");
         Assertions.assertEquals(400, getResp.statusCode());
     }
 
-    static class SecretsCleanupExtension implements AfterEachCallback {
+    @Test
+    void testInvalidMethods() {
+        HttpResponse<JsonNode> postResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/invalid-create-with-post", "POST", Map.of("secret", "value"));
+        Assertions.assertEquals(405, postResp.statusCode(), "POST should not be allowed");
+
+        HttpResponse<JsonNode> patchResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/invalid-update-with-patch", "PATCH", Map.of("secret", "value"));
+        Assertions.assertEquals(405, patchResp.statusCode(), "PATCH should not be allowed");
+    }
+
+    class SecretsCleanupExtension implements AfterEachCallback {
         @Override
         public void afterEach(ExtensionContext context) {
-            RestClient client = keycloak.getClient();
             try {
-                HttpResponse<JsonNode> listResp = client.sendRequest(API_PATH, "GET", null);
+                HttpResponse<JsonNode> listResp = keycloakAdminClient.sendRequest(API_PATH, "GET");
                 if (listResp.statusCode() == 200) {
                     JsonNode idsNode = listResp.body().get("secret_ids");
                     if (idsNode != null && idsNode.isArray()) {
                         for (JsonNode idNode : idsNode) {
                             String id = idNode.asText();
-                            HttpResponse<JsonNode> delResp = client.sendRequest(API_PATH + "/" + id, "DELETE", null);
+                            HttpResponse<JsonNode> delResp = keycloakAdminClient.sendRequest(API_PATH + "/" + id, "DELETE");
                             if (delResp.statusCode() != 204 && delResp.statusCode() != 404) {
                                 logger.warnv("Failed to delete secret {0}, status: {1}", id, delResp.statusCode());
                             }

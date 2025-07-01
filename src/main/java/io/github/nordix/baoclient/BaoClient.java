@@ -110,8 +110,7 @@ public class BaoClient {
     public boolean isReady() {
         HttpResponse<JsonNode> response = httpClient.sendRequest(
                 "v1/sys/health",
-                "GET",
-                null);
+                "GET");
         return RestClient.isSuccessfulResponse(response);
     }
 
@@ -158,8 +157,7 @@ public class BaoClient {
 
         HttpResponse<JsonNode> response = httpClient.sendRequest(
                 listPath,
-                "LIST",
-                null);
+                "LIST");
 
         if (response.statusCode() == 404) {
             // If the path does not exist, return an empty list.
@@ -190,8 +188,7 @@ public class BaoClient {
     public Map<String, String> kv1Get(String kvMountPath, String secretPath) {
         HttpResponse<JsonNode> response = httpClient.sendRequest(
                 "v1/" + kvMountPath + "/" + secretPath,
-                "GET",
-                null);
+                "GET");
 
         if (!RestClient.isSuccessfulResponse(response)) {
             logger.errorv(
@@ -231,8 +228,7 @@ public class BaoClient {
     public void kv1Delete(String kvMountPath, String secretPath) {
         HttpResponse<JsonNode> response = httpClient.sendRequest(
                 "v1/" + kvMountPath + "/" + secretPath,
-                "DELETE",
-                null);
+                "DELETE");
 
         if (!RestClient.isSuccessfulResponse(response)) {
             logger.errorv(
@@ -261,8 +257,7 @@ public class BaoClient {
 
         HttpResponse<JsonNode> response = httpClient.sendRequest(
                 listPath,
-                "SCAN",
-                null);
+                "SCAN");
 
         if (!RestClient.isSuccessfulResponse(response)) {
             logger.errorv(
@@ -287,8 +282,7 @@ public class BaoClient {
     public Map<String, String> kv2Get(String kvMountPath, String secretPath) {
         HttpResponse<JsonNode> response = httpClient.sendRequest(
                 "v1/" + kvMountPath + "/data/" + secretPath,
-                "GET",
-                null);
+                "GET");
 
         if (!RestClient.isSuccessfulResponse(response)) {
             logger.errorv(

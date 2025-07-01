@@ -57,7 +57,7 @@ public class SecretsProvider implements VaultProvider {
      * <p>
      * The {@code vaultSecretId} parameter should follow the syntax:
      * <pre>
-     *   [path/to/secret].[field]
+     *   [path/to/secret]:[field]
      * </pre>
      * if the field is not specified, it defaults to {@code secret}.
      * The special token {@code %realm%} in the {@code vaultSecretId} will be replaced with the current realm.
@@ -74,7 +74,7 @@ public class SecretsProvider implements VaultProvider {
         String fieldName = null;
         String fullPath = null;
 
-        int separatorIndex = pathSuffix.lastIndexOf('.');
+        int separatorIndex = pathSuffix.lastIndexOf(':');
         if (separatorIndex > 0) {
             fullPath = pathPrefix + "/" + pathSuffix.substring(0, separatorIndex);
             fieldName = pathSuffix.substring(separatorIndex + 1);
