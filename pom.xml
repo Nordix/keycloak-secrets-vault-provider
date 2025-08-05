@@ -21,7 +21,7 @@
     <version.certy>0.4.1</version.certy>
     <version.apache.commons.exec>1.5.0</version.apache.commons.exec>
     <version.jackson.core>2.18.0</version.jackson.core>
-    <version.smallrye.openapi>4.0.10</version.smallrye.openapi>
+    <version.smallrye.openapi>4.1.1</version.smallrye.openapi>
     <version.maven.clean.plugin>3.4.1</version.maven.clean.plugin>
     <version.maven.resources.plugin>3.3.1</version.maven.resources.plugin>
     <version.maven.compiler.plugin>3.14.0</version.maven.compiler.plugin>
