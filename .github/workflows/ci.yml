@@ -29,4 +29,4 @@ jobs:
 
       - name: Build the project
         run: |
-          ./mvnw clearn verify --batch-mode --update-snapshots -DsetupEnv=true
+          ./mvnw clean verify --batch-mode --update-snapshots -DsetupEnv=true
