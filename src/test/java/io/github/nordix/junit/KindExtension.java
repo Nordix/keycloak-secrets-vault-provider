@@ -15,21 +15,20 @@ import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.exec.ExecuteResultHandler;
 import org.jboss.logging.Logger;
-import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 /**
  * JUnit extension for starting and stopping Kind clusters.
  */
-public class KindExtension implements BeforeAllCallback, AfterAllCallback {
+public class KindExtension implements BeforeAllCallback, AutoCloseable {
 
     private static final String KIND_CREATE_CLUSTER = "kind create cluster --name %s --config %s";
     private static final String KIND_DELETE_CLUSTER = "kind delete cluster --name %s";
 
     private static Logger logger = Logger.getLogger(KindExtension.class);
 
-    private final String baseDir = System.getProperty("maven.multiModuleProjectDirectory");
+    private final String baseDir = System.getProperty("user.dir");
     private final String configFileName;
     private final String clusterName;
     private final boolean setupEnv;
@@ -57,19 +56,28 @@ public class KindExtension implements BeforeAllCallback, AfterAllCallback {
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
         if (!setupEnv) {
-            logger.info("Skipping Kind cluster creation as setupEnv is not set");
+            logger.warn("Skipping Kind cluster creation as -DsetupEnv=true is not given");
+            return;
+        }
+
+        // Check if the Kind cluster is already started (this extension runs only once, before all test classes).
+        String key = this.getClass().getName();
+        Object value = context.getRoot().getStore(ExtensionContext.Namespace.GLOBAL).get(key);
+        if (value != null) {
+            logger.info("Kind cluster already started, skipping.");
             return;
         }
 
         String command = String.format(KIND_CREATE_CLUSTER, clusterName, configFileName);
         run(command, true, "Failed to start Kind cluster.");
+
+        context.getRoot().getStore(ExtensionContext.Namespace.GLOBAL).put(key, this);
     }
 
     /**
      * Stop Kind after all tests.
      */
-    @Override
-    public void afterAll(ExtensionContext context) throws Exception {
+    public void close() throws Exception {
         if (!setupEnv) {
             logger.info("Skipping Kind cluster deletion as setupEnv is not set");
             return;

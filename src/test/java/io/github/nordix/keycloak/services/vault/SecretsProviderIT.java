@@ -43,8 +43,7 @@ class SecretsProviderIT {
 
     // Create a Kind cluster.
     @RegisterExtension
-    private static final KindExtension kind = new KindExtension("testing/configs/kind-cluster-config.yaml",
-            "secrets-provider");
+    private static final KindExtension kind = new KindExtension("testing/configs/kind-cluster-config.yaml", "secrets-provider");
 
     // Deploy Keycloak and OpenBao.
     @RegisterExtension

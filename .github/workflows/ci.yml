@@ -12,16 +12,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      - name: Build the project
-        run: |
-          ./mvnw verify --batch-mode --update-snapshots -DskipTests
-
       - name: Check for uncommitted changes in docs (OpenAPI)
         run: |
           if ! git diff --exit-code -- docs; then
@@ -30,3 +20,13 @@ jobs:
             git --no-pager diff -- docs
             exit 1
           fi
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Build the project
+        run: |
+          ./mvnw clearn verify --batch-mode --update-snapshots -DsetupEnv=true

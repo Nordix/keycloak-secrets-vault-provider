@@ -86,8 +86,8 @@ spec:
             - name: https
               containerPort: 8443
               protocol: TCP
-            - containerPort: 9000
-              name: management
+            - name: management
+              containerPort: 9000
               protocol: TCP
 
           livenessProbe:

@@ -7,12 +7,12 @@ This guide is for developers who wish to contribute to the project.
 To build the project without running tests:
 
 ```bash
-./mvnw clean install -DskipTests
+./mvnw clean package -DskipTests
 ```
 
 ## Local Development Environment
 
-You can set up a local Kubernetes cluster using [kind](https://kind.sigs.k8s.io/) and deploy the required services for development and testing.
+To avoid repeatedly setting up the environment, you can first manually create a Kubernetes cluster and deploy the required services, and then run the tests against this setup.
 
 1. Create a kind cluster:
     ```bash
@@ -23,6 +23,8 @@ You can set up a local Kubernetes cluster using [kind](https://kind.sigs.k8s.io/
     ```bash
     kubectl apply -f testing/manifests
     ```
+
+After this setup, you can run the tests against the manually created environment without needing to set up the cluster each time.
 
 This setup will:
 - Deploy OpenBao and Keycloak with two realms ("first" and "second").
@@ -37,11 +39,17 @@ Access Information:
 - Federated realm login: [http://127.0.0.127:8080/realms/first/account/](http://127.0.0.127:8080/realms/first/account/)
   User in "second" realm: `joe` / `joe`
 
+To delete the cluster after testing, run:
+
+```bash
+kind delete cluster --name secrets-provider
+```
+
 ## Running Integration Tests
 
-> **Note:** Integration tests require `kind` and `kubectl` to be installed.
+> **Note:** Integration tests require [kind](https://kind.sigs.k8s.io/) and [kubectl](https://kubernetes.io/docs/tasks/tools/) to be installed.
 
-To run integration tests:
+To run integration tests against the manually setup environment (without `-DsetupEnv=true`):
 
 ```bash
 ./mvnw clean verify

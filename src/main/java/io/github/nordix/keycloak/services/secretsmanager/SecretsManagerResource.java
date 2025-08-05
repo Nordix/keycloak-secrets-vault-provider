@@ -65,10 +65,8 @@ public class SecretsManagerResource {
      */
     private static final String SECRET_ID_REGEX = "^[a-zA-Z0-9_\\.-]+$";
 
-    private final KeycloakSession session;
     private final RealmModel realm;
     private final AdminPermissionEvaluator auth;
-    private final AdminEventBuilder adminEvent;
     private final ProviderConfig providerConfig;
     private final BaoClient baoClient;
     private final String resolvedRealmPathPrefix;
@@ -79,10 +77,8 @@ public class SecretsManagerResource {
             AdminEventBuilder adminEvent,
             ProviderConfig providerConfig) {
         logger.debugv("Creating SecretResource for session: {0}, realm: {1}", session, realm.getName());
-        this.session = session;
         this.realm = realm;
         this.auth = auth;
-        this.adminEvent = adminEvent;
         this.providerConfig = providerConfig;
         this.resolvedRealmPathPrefix = providerConfig.getKvPathPrefix().replace("%realm%", realm.getName());
 

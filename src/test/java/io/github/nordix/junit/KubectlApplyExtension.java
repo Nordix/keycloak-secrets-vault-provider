@@ -25,7 +25,7 @@ public class KubectlApplyExtension implements BeforeAllCallback {
 
     private static Logger logger = Logger.getLogger(KubectlApplyExtension.class);
 
-    private final String baseDir = System.getProperty("maven.multiModuleProjectDirectory");
+    private final String baseDir = System.getProperty("user.dir");
     private final String manifestFileName;
     private final boolean setupEnv;
 
@@ -51,7 +51,14 @@ public class KubectlApplyExtension implements BeforeAllCallback {
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
         if (!setupEnv) {
-            logger.info("Skipping kubectl deployment as setupEnv is not set");
+            logger.warn("Skipping kubectl deployment as -DsetupEnv=true is not given");
+            return;
+        }
+
+        String key = this.getClass().getName();
+        Object value = context.getRoot().getStore(ExtensionContext.Namespace.GLOBAL).get(key);
+        if (value != null) {
+            logger.info("Kubectl deployment already done, skipping.");
             return;
         }
 
@@ -60,6 +67,8 @@ public class KubectlApplyExtension implements BeforeAllCallback {
 
         // Wait for the deployment to complete
         waitForDeployment();
+
+        context.getRoot().getStore(ExtensionContext.Namespace.GLOBAL).put(key, this);
     }
 
     /**
