@@ -49,7 +49,7 @@ spec:
     spec:
       containers:
         - name: openbao
-          image: ghcr.io/openbao/openbao:2.3.1
+          image: ghcr.io/openbao/openbao:2.3.2
           env:
             - name: BAO_DEV_LISTEN_ADDRESS
               value: "0.0.0.0:8200"
@@ -78,7 +78,7 @@ spec:
           #    port: 8200
 
         - name: openbao-configurator
-          image: ghcr.io/openbao/openbao:2.3.1
+          image: ghcr.io/openbao/openbao:2.3.2
           command:
             - "/bin/sh"
             - "-x"
