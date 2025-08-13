@@ -45,7 +45,7 @@ The provider works with both OpenBao and HashiCorp Vault, since both implement t
 | `--spi-vault-secrets-provider-service-account-file` | Path to the Kubernetes service account token file for authentication. | `/var/run/secrets/kubernetes.io/serviceaccount/token` |
 | `--spi-vault-secrets-provider-kv-mount`             | KV secrets engine mount point.                                        | `secret`                                              |
 | `--spi-vault-secrets-provider-kv-path-prefix`       | Path prefix for secrets. Supports `%realm%` variable.                 | `keycloak/%realm%`                                    |
-| `--spi-vault-secrets-provider-kv-version`           | KV secrets engine version (1 or 2).                                   | `1`                                                   |
+| `--spi-vault-secrets-provider-kv-version`           | KV secrets engine version (only 1 is supported).                      | `1`                                                   |
 | `--spi-vault-secrets-provider-ca-certificate-file`  | Path to CA certificate file for HTTPS connections. Optional.          | _none_                                                |
 | `--spi-vault-secrets-provider-role`                 | Role to use for authentication.                                       | _none_                                                |
 
@@ -58,7 +58,7 @@ The provider works with both OpenBao and HashiCorp Vault, since both implement t
 | `--spi-admin-realm-restapi-extension-secrets-manager-service-account-file` | Path to the Kubernetes service account token file for secrets manager authentication. | `/var/run/secrets/kubernetes.io/serviceaccount/token` |
 | `--spi-admin-realm-restapi-extension-secrets-manager-kv-mount`             | KV secrets engine mount point.                                                        | `secret`                                              |
 | `--spi-admin-realm-restapi-extension-secrets-manager-kv-path-prefix`       | Path prefix for secrets. Supports `%realm%` variable.                                 | `keycloak/%realm%`                                    |
-| `--spi-admin-realm-restapi-extension-secrets-manager-kv-version`           | KV secrets engine version (1 or 2).                                                   | `1`                                                   |
+| `--spi-admin-realm-restapi-extension-secrets-manager-kv-version`           | KV secrets engine version (only 1 is supported).                                      | `1`                                                   |
 | `--spi-admin-realm-restapi-extension-secrets-manager-ca-certificate-file`  | Path to CA certificate file for HTTPS connections. Optional.                          | _none_                                                |
 | `--spi-admin-realm-restapi-extension-secrets-manager-role`                 | Role to use for authentication.                                                       | _none_                                                |
 

@@ -34,6 +34,7 @@
     <version.maven.checkstyle.plugin>3.6.0</version.maven.checkstyle.plugin>
     <version.maven.jacoco.plugin>0.8.13</version.maven.jacoco.plugin>
     <version.maven.shade.plugin>3.5.1</version.maven.shade.plugin>
+    <version.selenium>4.34.0</version.selenium>
   </properties>
 
   <!-- Manage dependency versions -->
@@ -110,6 +111,18 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-exec</artifactId>
       <version>${version.apache.commons.exec}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.seleniumhq.selenium</groupId>
+      <artifactId>selenium-java</artifactId>
+      <version>${version.selenium}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.seleniumhq.selenium</groupId>
+      <artifactId>selenium-chrome-driver</artifactId>
+      <version>${version.selenium}</version>
       <scope>test</scope>
     </dependency>
 

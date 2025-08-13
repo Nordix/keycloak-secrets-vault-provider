@@ -9,11 +9,11 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  build-and-verify:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Check for uncommitted changes in docs (OpenAPI)
         run: |
@@ -25,11 +25,14 @@ jobs:
           fi
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
         with:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Build the project
+      - name: Set up Chrome for Selenium tests
+        uses: browser-actions/setup-chrome@b94431e051d1c52dcbe9a7092a4f10f827795416 # v2.1.0
+
+      - name: Build and test
         run: |
           ./mvnw clean verify --batch-mode --update-snapshots -DsetupEnv=true

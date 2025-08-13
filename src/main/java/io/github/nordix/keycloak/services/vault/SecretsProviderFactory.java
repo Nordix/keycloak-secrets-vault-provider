@@ -26,9 +26,15 @@ public class SecretsProviderFactory implements VaultProviderFactory {
 
 
     @Override
-    public void init(Scope config) {
-        this.config = new ProviderConfig(config, CMD_LINE_OPTION_PREFIX);
+    public void init(Scope scopedConfig) {
+        config = new ProviderConfig(scopedConfig, CMD_LINE_OPTION_PREFIX);
         logger.debugv("Initializing secrets-provider (Vault SPI) with {0}", this.config);
+        if (!config.getAuthMethod().equals("kubernetes")) {
+            throw new IllegalArgumentException("Only 'kubernetes' auth method is supported by the secrets-provider.");
+        }
+        if (config.getKvVersion() != 1) {
+            throw new IllegalArgumentException("Only KV version 1 is supported by the secrets-provider.");
+        }
     }
 
 
