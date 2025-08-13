@@ -55,6 +55,8 @@ public class KubectlApplyExtension implements BeforeAllCallback {
             return;
         }
 
+        // Note: beforeAll is called once per class and not once per test suite.
+        // Since deploying the applications is a costly operation, we check if the deployment has already been done.
         String key = this.getClass().getName();
         Object value = context.getRoot().getStore(ExtensionContext.Namespace.GLOBAL).get(key);
         if (value != null) {

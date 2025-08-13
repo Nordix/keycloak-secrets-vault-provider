@@ -9,6 +9,7 @@
 package io.github.nordix.keycloak.services.vault;
 
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +21,12 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -33,6 +40,14 @@ class SecretsProviderIT {
 
     private static Logger logger = Logger.getLogger(SecretsProviderIT.class);
 
+    public enum AuthenticationResult {
+        SUCCESS,
+        UNEXPECTED_ERROR,
+        INVALID_LOGIN,
+        WEBDRIVER_EXCEPTION,
+        UNHANDLED_RESULT
+    }
+
     private static final String KEYCLOAK_BASE_URL = "http://127.0.0.127:8080";
     private static final String PROVIDER_REALM = "provider-realm";
     private static final String CONSUMER_REALM = "consumer-realm";
@@ -43,7 +58,8 @@ class SecretsProviderIT {
 
     // Create a Kind cluster.
     @RegisterExtension
-    private static final KindExtension kind = new KindExtension("testing/configs/kind-cluster-config.yaml", "secrets-provider");
+    private static final KindExtension kind = new KindExtension("testing/configs/kind-cluster-config.yaml",
+            "secrets-provider");
 
     // Deploy Keycloak and OpenBao.
     @RegisterExtension
@@ -59,14 +75,75 @@ class SecretsProviderIT {
 
     @Test
     void testSecretReference() {
-        // Create a vault secret reference in the consumer realm.
         realms.storeSecret("idp.federator", PROVIDER_CLIENT_SECRET);
         realms.setSecretReference("${vault.idp.federator}");
+        AuthenticationResult result = performBrowserLogin(USER_LOGIN, USER_PASSWORD);
+        Assertions.assertEquals(AuthenticationResult.SUCCESS, result,
+            "Expected successful login when valid vault secret reference is used");
+    }
 
-        // TODO:
-        // Cannot use password grant for identity brokering / idp user so testing would require browser login via selenium
-        // Consider bringing in OpenLDAP into test env and LDAP federation instead.
+    @Test
+    void testInvalidSecretReference() {
+        realms.storeSecret("idp.federator", PROVIDER_CLIENT_SECRET);
+        realms.setSecretReference("${vault.idp.invalid}");
+        AuthenticationResult result = performBrowserLogin(USER_LOGIN, USER_PASSWORD);
+        Assertions.assertEquals(AuthenticationResult.UNEXPECTED_ERROR, result,
+            "Expected invalid vault reference error when non-existent secret is referenced");
+    }
 
+    @Test
+    void testInvalidCredentials() {
+        realms.storeSecret("idp.federator", PROVIDER_CLIENT_SECRET);
+        realms.setSecretReference("${vault.idp.federator}");
+        AuthenticationResult result = performBrowserLogin("invalid-user", "wrong-password");
+        Assertions.assertEquals(AuthenticationResult.INVALID_LOGIN, result,
+            "Expected invalid credentials error when wrong username/password is used");
+    }
+
+    private AuthenticationResult performBrowserLogin(String username, String password) {
+        ChromeOptions options = new ChromeOptions();
+        // Comment out headless if want to see browser for debugging.
+        options.addArguments("--headless");
+        WebDriver driver = new ChromeDriver(options);
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        try {
+            String consumerLoginUrl = KEYCLOAK_BASE_URL + "/realms/" + CONSUMER_REALM + "/protocol/openid-connect/auth"
+                    + "?client_id=account&redirect_uri=" + KEYCLOAK_BASE_URL + "/realms/" + CONSUMER_REALM + "/account/"
+                    + "&response_type=code&scope=openid";
+            logger.debug("Navigating to consumer login URL: " + consumerLoginUrl);
+            driver.get(consumerLoginUrl);
+
+            // Click "federator".
+            wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//a[@aria-label='federator']"))).click();
+
+            // Fill in username and password.
+            wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("username"))).sendKeys(username);
+            wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("password"))).sendKeys(password);
+
+            // Click login button.
+            wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[@type='submit']"))).click();
+
+            wait.until(d -> d.getCurrentUrl().contains("/realms/" + CONSUMER_REALM + "/account/")
+                    || d.getPageSource().contains("Unexpected error when authenticating with identity provider")
+                    || d.getPageSource().contains("Invalid username or password"));
+
+            if (driver.getCurrentUrl().contains("/realms/" + CONSUMER_REALM + "/account/")) {
+                return AuthenticationResult.SUCCESS;
+            } else if (driver.getPageSource().contains("Unexpected error when authenticating with identity provider")) {
+                return AuthenticationResult.UNEXPECTED_ERROR;
+            } else if (driver.getPageSource().contains("Invalid username or password")) {
+                return AuthenticationResult.INVALID_LOGIN;
+            }
+        } catch (Exception e) {
+            logger.error("Failed to open browser for login", e);
+            logger.debug(driver.getPageSource());
+            return AuthenticationResult.WEBDRIVER_EXCEPTION;
+        } finally {
+            driver.quit();
+        }
+
+        return AuthenticationResult.UNHANDLED_RESULT;
     }
 
     class SetupFederatedRealms implements BeforeEachCallback, AfterEachCallback {
@@ -130,7 +207,7 @@ class SecretsProviderIT {
 
         @Override
         public void afterEach(ExtensionContext context) throws Exception {
-            // First, clean up secrets in the consumer realm.
+            // Clean up secrets in the consumer realm. before delete.
             try {
                 HttpResponse<JsonNode> listResp = keycloakAdminClient
                         .sendRequest("/admin/realms/" + CONSUMER_REALM + "/secrets-manager", "GET");

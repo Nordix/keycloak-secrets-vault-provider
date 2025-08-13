@@ -15,14 +15,14 @@ To build the project without running tests:
 To avoid repeatedly setting up the environment, you can first manually create a Kubernetes cluster and deploy the required services, and then run the tests against this setup.
 
 1. Create a kind cluster:
-    ```bash
-    kind create cluster --name secrets-provider --config testing/configs/kind-cluster-config.yaml
-    ```
+```bash
+kind create cluster --name secrets-provider --config testing/configs/kind-cluster-config.yaml
+```
 
 2. Deploy OpenBao and Keycloak:
-    ```bash
-    kubectl apply -f testing/manifests
-    ```
+```bash
+kubectl apply -f testing/manifests
+```
 
 After this setup, you can run the tests against the manually created environment without needing to set up the cluster each time.
 

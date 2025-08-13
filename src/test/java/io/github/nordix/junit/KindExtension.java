@@ -60,7 +60,8 @@ public class KindExtension implements BeforeAllCallback, AutoCloseable {
             return;
         }
 
-        // Check if the Kind cluster is already started (this extension runs only once, before all test classes).
+        // Note: beforeAll is called once per class and not once per test suite.
+        // Since cluster setup is a costly operation, we check if the deployment has already been done.
         String key = this.getClass().getName();
         Object value = context.getRoot().getStore(ExtensionContext.Namespace.GLOBAL).get(key);
         if (value != null) {
@@ -76,6 +77,7 @@ public class KindExtension implements BeforeAllCallback, AutoCloseable {
 
     /**
      * Stop Kind after all tests.
+     * Note: This method is called after test suite execution is finished, not per test class like afterAll() method.
      */
     public void close() throws Exception {
         if (!setupEnv) {
