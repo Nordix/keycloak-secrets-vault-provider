@@ -17,12 +17,12 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 import io.github.nordix.junit.KeycloakRestClientExtension;
-import io.github.nordix.junit.KindExtension;
-import io.github.nordix.junit.KubectlApplyExtension;
 import io.github.nordix.junit.LoggingExtension;
 import org.junit.jupiter.api.Assertions;
 
 import java.net.http.HttpResponse;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -34,14 +34,6 @@ class SecretsManagerIT {
     private static Logger logger = Logger.getLogger(SecretsManagerIT.class);
 
     private static final String KEYCLOAK_BASE_URL = "http://127.0.0.127:8080";
-
-    // Create a Kind cluster.
-    @RegisterExtension
-    private static final KindExtension kind = new KindExtension("testing/configs/kind-cluster-config.yaml", "secrets-provider");
-
-    // Deploy Keycloak and OpenBao.
-    @RegisterExtension
-    private static final KubectlApplyExtension deployment = new KubectlApplyExtension("testing/manifests");
 
     // Delete all secrets after each test.
     @RegisterExtension

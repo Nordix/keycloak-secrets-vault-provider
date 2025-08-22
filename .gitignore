@@ -4,3 +4,4 @@ target/
 .vscode/
 pom.xml.versionsBackup
 dependency-reduced-pom.xml
+testing/certs

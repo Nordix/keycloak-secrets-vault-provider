@@ -31,8 +31,6 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.github.nordix.junit.KeycloakRestClientExtension;
-import io.github.nordix.junit.KindExtension;
-import io.github.nordix.junit.KubectlApplyExtension;
 import io.github.nordix.junit.LoggingExtension;
 
 @ExtendWith(LoggingExtension.class)
@@ -55,15 +53,6 @@ class SecretsProviderIT {
     private static final String PROVIDER_CLIENT_SECRET = "my-secret";
     private static final String USER_LOGIN = "joe";
     private static final String USER_PASSWORD = "password";
-
-    // Create a Kind cluster.
-    @RegisterExtension
-    private static final KindExtension kind = new KindExtension("testing/configs/kind-cluster-config.yaml",
-            "secrets-provider");
-
-    // Deploy Keycloak and OpenBao.
-    @RegisterExtension
-    private static final KubectlApplyExtension deployment = new KubectlApplyExtension("testing/manifests");
 
     // Keycloak client extension to interact with Keycloak admin API.
     @RegisterExtension
