@@ -58,12 +58,14 @@ spec:
               /opt/keycloak/bin/kc.sh start-dev \
                 --import-realm \
                 --spi-vault-provider=secrets-provider \
-                --spi-vault-secrets-provider-address=http://openbao:8200 \
+                --spi-vault-secrets-provider-address=https://openbao:8200 \
+                --spi-vault-secrets-provider-ca-certificate-file=/host/testing/certs/ca.pem \
                 --spi-vault-secrets-provider-kv-mount=secretv1 \
                 --spi-vault-secrets-provider-kv-path-prefix="keycloak/%realm%" \
                 --spi-vault-secrets-provider-kv-version=1 \
                 --spi-vault-secrets-provider-role=keycloak-reader \
-                --spi-admin-realm-restapi-extension-secrets-manager-address=http://openbao:8200 \
+                --spi-admin-realm-restapi-extension-secrets-manager-address=https://openbao:8200 \
+                --spi-admin-realm-restapi-extension-secrets-manager-ca-certificate-file=/host/testing/certs/ca.pem \
                 --spi-admin-realm-restapi-extension-secrets-manager-kv-mount=secretv1 \
                 --spi-admin-realm-restapi-extension-secrets-manager-kv-path-prefix="keycloak/%realm%" \
                 --spi-admin-realm-restapi-extension-secrets-manager-kv-version=1 \
@@ -109,8 +111,8 @@ spec:
               scheme: HTTP
 
           volumeMounts:
-            - mountPath: /host
-              name: hostvolume
+            - name: hostvolume
+              mountPath: /host
               readOnly: true
 
       volumes:

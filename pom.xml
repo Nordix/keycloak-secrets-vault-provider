@@ -19,7 +19,6 @@
     <version.jboss.logmanager>3.1.2.Final</version.jboss.logmanager>
     <version.jboss.logging>3.6.1.Final</version.jboss.logging>
     <version.certy>0.4.1</version.certy>
-    <version.apache.commons.exec>1.5.0</version.apache.commons.exec>
     <version.jackson.core>2.18.0</version.jackson.core>
     <version.smallrye.openapi>4.1.1</version.smallrye.openapi>
     <version.maven.clean.plugin>3.5.0</version.maven.clean.plugin>
@@ -34,7 +33,9 @@
     <version.maven.checkstyle.plugin>3.6.0</version.maven.checkstyle.plugin>
     <version.maven.jacoco.plugin>0.8.13</version.maven.jacoco.plugin>
     <version.maven.shade.plugin>3.5.1</version.maven.shade.plugin>
-    <version.selenium>4.35.0</version.selenium>
+    <version.maven.exec.plugin>3.5.1</version.maven.exec.plugin>
+    <version.selenium>4.34.0</version.selenium>
+    <version.certy>0.4.1</version.certy>
   </properties>
 
   <!-- Manage dependency versions -->
@@ -88,13 +89,6 @@
       <version>${version.jboss.logging}</version>
       <scope>provided</scope>
     </dependency>
-    <dependency>
-      <groupId>io.smallrye</groupId>
-      <artifactId>smallrye-open-api-core</artifactId>
-      <version>${version.smallrye.openapi}</version>
-      <scope>provided</scope>
-    </dependency>
-
 
     <!-- Test dependencies -->
     <dependency>
@@ -108,12 +102,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-exec</artifactId>
-      <version>${version.apache.commons.exec}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.seleniumhq.selenium</groupId>
       <artifactId>selenium-java</artifactId>
       <version>${version.selenium}</version>
@@ -123,6 +111,12 @@
       <groupId>org.seleniumhq.selenium</groupId>
       <artifactId>selenium-chrome-driver</artifactId>
       <version>${version.selenium}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>fi.protonode</groupId>
+      <artifactId>certy</artifactId>
+      <version>${version.certy}</version>
       <scope>test</scope>
     </dependency>
 
@@ -164,130 +158,223 @@
     </pluginManagement>
 
     <plugins>
-        <!-- Integration test -->
-        <plugin>
-          <artifactId>maven-failsafe-plugin</artifactId>
-          <version>${version.maven.failsafe.plugin}</version>
-          <configuration>
-            <systemPropertyVariables>
-              <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-              <logging.configuration>file:///${project.basedir}/testing/configs/logging.properties</logging.configuration>
-            </systemPropertyVariables>
-          </configuration>
-          <executions>
-            <execution>
-              <goals>
-                <goal>integration-test</goal>
-                <goal>verify</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
-        <plugin>
-          <artifactId>maven-jar-plugin</artifactId>
-          <version>${version.maven.jar.plugin}</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-install-plugin</artifactId>
-          <version>${version.maven.install.plugin}</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-deploy-plugin</artifactId>
-          <version>${version.maven.deploy.plugin}</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-project-info-reports-plugin</artifactId>
-          <version>${version.maven.project-info-reports.plugin}</version>
-        </plugin>
-        <!-- Checkstyle  -->
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>${version.maven.checkstyle.plugin}</version>
-          <configuration>
-            <configLocation>.checkstyle.xml</configLocation>
-            <consoleOutput>true</consoleOutput>
-            <failsOnError>true</failsOnError>
-          </configuration>
-          <executions>
-            <execution>
-              <goals>
-                <goal>check</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
-        <!-- Jacoco coverage report -->
-        <plugin>
-          <groupId>org.jacoco</groupId>
-          <artifactId>jacoco-maven-plugin</artifactId>
-          <version>${version.maven.jacoco.plugin}</version>
-          <executions>
-            <execution>
-              <goals>
-                <goal>prepare-agent</goal>
-              </goals>
-            </execution>
-            <execution>
-              <id>report</id>
-              <phase>test</phase>
-              <goals>
-                <goal>report</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
-        <!-- Generate OpenAPI description -->
-        <!-- config example from https://github.com/smallrye/smallrye-open-api/discussions/1353 -->
-        <plugin>
-          <groupId>io.smallrye</groupId>
-          <artifactId>smallrye-open-api-maven-plugin</artifactId>
-          <version>${version.smallrye.openapi}</version>
-          <configuration>
-            <infoTitle>Keycloak Secrets Manager</infoTitle>
-            <infoVersion>${project.version}</infoVersion>
-            <infoDescription>Manage per-realm Keycloak vault secrets stored in an external vault backend. API base URL is `https://&lt;KEYCLOAK_URL&gt;/admin/realms/&lt;REALM_NAME&gt;/secrets-manager/`. Executing the requests require Keycloak bearer token with realm administrator privileges.</infoDescription>
-            <infoContactName>Keycloak Vault Provider for OpenBao and HashiCorp Vault</infoContactName>
-            <infoContactUrl>https://github.com/Nordix/keycloak-secrets-vault-provider</infoContactUrl>
-            <scanResourceClasses>
-                <io.github.nordix.keycloak.services.secretsmanager.SecretsManagerResource>/secrets-manager/</io.github.nordix.keycloak.services.secretsmanager.SecretsManagerResource>
-            </scanResourceClasses>
-          </configuration>
-          <executions>
-            <execution>
-              <goals>
-                <goal>generate-schema</goal>
-              </goals>
-              <phase>process-classes</phase>
+      <!-- Integration test -->
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>${version.maven.failsafe.plugin}</version>
+        <configuration>
+          <systemPropertyVariables>
+            <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+            <logging.configuration>file:///${project.basedir}/testing/configs/logging.properties</logging.configuration>
+          </systemPropertyVariables>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
           </execution>
-          </executions>
-        </plugin>
-        <plugin>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>${version.maven.resources.plugin}</version>
-          <executions>
-            <execution>
-              <id>copy-openapi-to-docs</id>
-              <goals>
-                <goal>copy-resources</goal>
-              </goals>
-              <phase>process-classes</phase>
-              <configuration>
-                <outputDirectory>${project.basedir}/docs</outputDirectory>
-                <resources>
-                  <resource>
-                    <directory>${project.basedir}/target/generated</directory>
-                    <includes>
-                      <include>openapi.*</include>
-                    </includes>
-                  </resource>
-                </resources>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>${version.maven.jar.plugin}</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-install-plugin</artifactId>
+        <version>${version.maven.install.plugin}</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <version>${version.maven.deploy.plugin}</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+        <version>${version.maven.project-info-reports.plugin}</version>
+      </plugin>
+      <!-- Checkstyle  -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>${version.maven.checkstyle.plugin}</version>
+        <configuration>
+          <configLocation>.checkstyle.xml</configLocation>
+          <consoleOutput>true</consoleOutput>
+          <failsOnError>true</failsOnError>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- Jacoco coverage report -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${version.maven.jacoco.plugin}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>test</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- Generate OpenAPI description -->
+      <!-- config example from https://github.com/smallrye/smallrye-open-api/discussions/1353 -->
+      <plugin>
+        <groupId>io.smallrye</groupId>
+        <artifactId>smallrye-open-api-maven-plugin</artifactId>
+        <version>${version.smallrye.openapi}</version>
+        <configuration>
+          <infoTitle>Keycloak Secrets Manager</infoTitle>
+          <infoVersion>${project.version}</infoVersion>
+          <infoDescription>Manage per-realm Keycloak vault secrets stored in an external vault
+            backend. API base URL is
+            `https://&lt;KEYCLOAK_URL&gt;/admin/realms/&lt;REALM_NAME&gt;/secrets-manager/`.
+            Executing the requests require Keycloak bearer token with realm administrator
+            privileges.</infoDescription>
+          <infoContactName>Keycloak Vault Provider for OpenBao and HashiCorp Vault</infoContactName>
+          <infoContactUrl>https://github.com/Nordix/keycloak-secrets-vault-provider</infoContactUrl>
+          <scanResourceClasses>
+            <io.github.nordix.keycloak.services.secretsmanager.SecretsManagerResource>
+              /secrets-manager/</io.github.nordix.keycloak.services.secretsmanager.SecretsManagerResource>
+          </scanResourceClasses>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>generate-schema</goal>
+            </goals>
+            <phase>process-classes</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>${version.maven.resources.plugin}</version>
+        <executions>
+          <execution>
+            <id>copy-openapi-to-docs</id>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <phase>process-classes</phase>
+            <configuration>
+              <outputDirectory>${project.basedir}/docs</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}/target/generated</directory>
+                  <includes>
+                    <include>openapi.*</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
 
   </build>
+
+  <!-- Integration test: manage test environment when given  -->
+  <profiles>
+    <profile>
+      <id>manage-test-environment</id>
+      <activation>
+        <property>
+          <name>manageTestEnv</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>${version.maven.exec.plugin}</version>
+            <executions>
+              <!-- ./mvnw exec:exec@create-kind-cluster -DtestEnv=true -->
+              <execution>
+                <id>create-kind-cluster</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <configuration>
+                  <executable>kind</executable>
+                  <arguments>
+                    <argument>create</argument>
+                    <argument>cluster</argument>
+                    <argument>--name</argument>
+                    <argument>secrets-provider</argument>
+                    <argument>--config</argument>
+                    <argument>${project.basedir}/testing/configs/kind-cluster-config.yaml</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+              <!-- ./mvnw exec:java@generate-certificates -DtestEnv=true -->
+              <execution>
+                <id>generate-certificates</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>java</goal>
+                </goals>
+                <configuration>
+                  <mainClass>io.github.nordix.environment.GenerateCertificates</mainClass>
+                  <classpathScope>test</classpathScope>
+                </configuration>
+              </execution>
+              <!-- ./mvnw exec:exec@deploy-keycloak-and-openbao -DtestEnv=true -->
+              <execution>
+                <id>deploy-keycloak-and-openbao</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <configuration>
+                  <executable>kubectl</executable>
+                  <arguments>
+                    <argument>apply</argument>
+                    <argument>-f</argument>
+                    <argument>${project.basedir}/testing/manifests</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+              <!-- ./mvnw exec:exec@delete-kind-cluster -DtestEnv=true -->
+              <execution>
+                <id>delete-kind-cluster</id>
+                <phase>post-integration-test</phase>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <configuration>
+                  <executable>kind</executable>
+                  <arguments>
+                    <argument>delete</argument>
+                    <argument>cluster</argument>
+                    <argument>--name</argument>
+                    <argument>secrets-provider</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>

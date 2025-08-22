@@ -12,48 +12,58 @@ To build the project without running tests:
 
 ## Local Development Environment
 
-To avoid repeatedly setting up the environment, you can first manually create a Kubernetes cluster and deploy the required services, and then run the tests against this setup.
-
-1. Create a kind cluster:
-```bash
-kind create cluster --name secrets-provider --config testing/configs/kind-cluster-config.yaml
-```
-
-2. Deploy OpenBao and Keycloak:
-```bash
-kubectl apply -f testing/manifests
-```
-
-After this setup, you can run the tests against the manually created environment without needing to set up the cluster each time.
-
-This setup will:
-- Deploy OpenBao and Keycloak with two realms ("first" and "second").
-- Create a user in the "second" realm for testing identity brokering with IdP secret using Vault SPI.
-- Include the compiled JAR file in the Keycloak deployment (ensure you have built the project first).
-
-Access Information:
-- OpenBao: [http://127.0.0.127:8200](http://127.0.0.127:8200)
-  Root token: `my-root-token`
-- Keycloak: [http://127.0.0.127:8080](http://127.0.0.127:8080)
-  Admin credentials: `admin` / `admin`
-- Federated realm login: [http://127.0.0.127:8080/realms/first/account/](http://127.0.0.127:8080/realms/first/account/)
-  User in "second" realm: `joe` / `joe`
-
-To delete the cluster after testing, run:
-
-```bash
-kind delete cluster --name secrets-provider
-```
-
-## Running Integration Tests
-
 > **Note:** Integration tests require [kind](https://kind.sigs.k8s.io/) and [kubectl](https://kubernetes.io/docs/tasks/tools/) to be installed.
 
-To run integration tests against the manually setup environment (without `-DsetupEnv=true`):
+To avoid repeatedly setting up the environment during development, you can first manually create a Kubernetes cluster and deploy the required services, and then run the tests against this setup.
 
-```bash
-./mvnw clean verify
-```
+1. Create a Kind cluster
+
+    ```bash
+    ./mvnw pre-integration-test -DmanageTestEnv=true
+    ```
+
+    You can then run the tests against the manually created environment without needing to set up the cluster each time.
+
+    The test setup will include:
+
+    - Create Kubernetes cluster with kind.
+    - Generate certificates for internal communication between Keycloak and OpenBao.
+    - Deploy Keycloak with the compiled JAR, configure two realms ("first" and "second") and create a user in the "second" realm for testing identity brokering with IdP secret using Vault SPI.
+    - Deploy OpenBao, initialize and unseal, configure KV secrets engine, and create a roles and policies for Keycloak.
+
+2. Run tests
+
+    You can either run the integration tests from your IDE or from the command line.
+
+    ```bash
+    ./mvnw clean verify
+    ```
+
+3. Delete the Kind cluster
+
+    ```bash
+    ./mvnw exec:exec@delete-kind-cluster -DmanageTestEnv=true
+    ```
+
+The access information for test environments is as follows:
+
+- OpenBao: [http://127.0.0.127:8200](http://127.0.0.127:8200)
+
+  To get the root token and unseal key run
+  ```
+  kubectl exec $(kubectl get pod -l app=openbao -o jsonpath='{.items[0].metadata.name}') -c openbao-configurator -- cat /unseal/init.json
+  ```
+- Keycloak: [http://127.0.0.127:8080](http://127.0.0.127:8080)
+
+  Admin credentials: `admin` / `admin`
+
+- Federated realm login: [http://127.0.0.127:8080/realms/first/account/](http://127.0.0.127:8080/realms/first/account/)
+
+  User in "second" realm: `joe` / `joe`
+
+
+
+
 
 ## Running Checkstyle
 

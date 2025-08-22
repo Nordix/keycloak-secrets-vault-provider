@@ -50,16 +50,21 @@ spec:
       containers:
         - name: openbao
           image: ghcr.io/openbao/openbao:2.3.2
+          command:
+            - "/bin/sh"
+            - "-c"
+            - "bao server -config=/config/openbao.json"
           env:
-            - name: BAO_DEV_LISTEN_ADDRESS
-              value: "0.0.0.0:8200"
-            - name: BAO_DEV_ROOT_TOKEN_ID
-              value: "my-root-token"
             - name: BAO_LOG_LEVEL
               value: "debug"
-
           ports:
             - containerPort: 8200
+          volumeMounts:
+            - name: openbao-config
+              mountPath: /config
+            - name: hostvolume
+              mountPath: /host
+              readOnly: true
 
           #livenessProbe:
           #  httpGet:
@@ -85,12 +90,18 @@ spec:
             - /config/initialize.sh
           env:
             - name: BAO_ADDR
-              value: "http://localhost:8200"
-            - name: BAO_TOKEN
-              value: "my-root-token"
+              value: "https://localhost:8200"
+            - name: BAO_CACERT
+              value: "/host/testing/certs/ca.pem"
           volumeMounts:
             - name: openbao-config
               mountPath: /config
+            - name: hostvolume
+              mountPath: /host
+              readOnly: true
+            - name: unseal
+              mountPath: /unseal
+
 
       serviceAccountName: tokenreview
 
@@ -98,6 +109,12 @@ spec:
         - name: openbao-config
           configMap:
             name: openbao-config
+        - name: hostvolume
+          hostPath:
+            path: /host
+        - name: unseal
+          emptyDir:
+            medium: Memory
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -105,10 +122,28 @@ metadata:
   name: openbao-config
 data:
   initialize.sh: |
-    until bao status; do
-      echo "Waiting for OpenBao to be ready..."
-      sleep 2
+    # Wait for OpenBao to be up.
+    while true; do
+      bao status
+      status_code=$?
+      if [ "$status_code" -eq 2 ]; then
+        break
+      fi
+      echo "Waiting for OpenBao to be ready... (status code: $status_code)"
+      sleep 1
     done
+
+    # Initialize.
+    bao operator init -key-shares=1 -key-threshold=1 -format=json > /unseal/init.json
+
+    # Extract unseal key and root token.
+    UNSEAL_KEY=$(awk '/"unseal_keys_b64"/ {getline; gsub(/[", ]/, "", $0); print $0}' /unseal/init.json)
+    ROOT_TOKEN=$(awk -F'"' '/"root_token"/ {print $4; exit}' /unseal/init.json)
+
+    # Unseal.
+    bao operator unseal "$UNSEAL_KEY"
+
+    export BAO_TOKEN="$ROOT_TOKEN"
 
     # Enable kubernetes auth method.
     bao auth enable kubernetes
@@ -137,3 +172,21 @@ data:
     while true; do
       sleep 999999999
     done
+
+  openbao.json: |
+    {
+      "api_addr": "https://openbao:8200",
+      "listener": {
+        "tcp": {
+          "address": "0.0.0.0:8200",
+          "tls_cert_file": "/host/testing/certs/openbao.pem",
+          "tls_key_file": "/host/testing/certs/openbao-key.pem",
+          "tls_ca_file": "/host/testing/certs/ca.pem"
+        }
+      },
+      "storage": {
+        "file": {
+          "path": "/tmp"
+        }
+      }
+    }
