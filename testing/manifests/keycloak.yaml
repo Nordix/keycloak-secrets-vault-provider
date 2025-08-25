@@ -47,7 +47,7 @@ spec:
     spec:
       containers:
         - name: keycloak
-          image: quay.io/keycloak/keycloak:26.3.2
+          image: quay.io/keycloak/keycloak:26.3.3
           command:
             - "/bin/bash"
             - "-c"
