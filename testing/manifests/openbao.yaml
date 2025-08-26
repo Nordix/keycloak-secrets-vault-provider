@@ -25,10 +25,15 @@ spec:
   selector:
     app: openbao
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 8200
-      targetPort: 8200
+      targetPort: http
       nodePort: 8200
+    - name: https
+      protocol: TCP
+      port: 18200
+      targetPort: https
   type: NodePort
 ---
 apiVersion: apps/v1
@@ -58,7 +63,12 @@ spec:
             - name: BAO_LOG_LEVEL
               value: "debug"
           ports:
-            - containerPort: 8200
+            - name: http
+              containerPort: 8200
+              protocol: TCP
+            - name: https
+              containerPort: 18200
+              protocol: TCP
           volumeMounts:
             - name: openbao-config
               mountPath: /config
@@ -90,9 +100,7 @@ spec:
             - /config/initialize.sh
           env:
             - name: BAO_ADDR
-              value: "https://localhost:8200"
-            - name: BAO_CACERT
-              value: "/host/testing/certs/ca.pem"
+              value: "http://localhost:8200"
           volumeMounts:
             - name: openbao-config
               mountPath: /config
@@ -101,7 +109,6 @@ spec:
               readOnly: true
             - name: unseal
               mountPath: /unseal
-
 
       serviceAccountName: tokenreview
 
@@ -176,9 +183,17 @@ data:
   openbao.json: |
     {
       "api_addr": "https://openbao:8200",
+      "ui": true,
       "listener": {
         "tcp": {
           "address": "0.0.0.0:8200",
+          "tls_disable": true,
+          "telemetry": {
+            "unauthenticated_metrics_access": true
+          }
+        },
+        "tcp": {
+          "address": "0.0.0.0:18200",
           "tls_cert_file": "/host/testing/certs/openbao.pem",
           "tls_key_file": "/host/testing/certs/openbao-key.pem",
           "tls_ca_file": "/host/testing/certs/ca.pem"
@@ -188,5 +203,10 @@ data:
         "file": {
           "path": "/tmp"
         }
+      },
+      "telemetry": {
+        "prefix_filter": [ "+vault" ]
+        "prometheus_retention_time": "1h",
+        "disable_hostname": true,
       }
     }

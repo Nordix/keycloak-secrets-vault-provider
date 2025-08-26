@@ -27,6 +27,7 @@ public class ProviderConfig {
     private int kvVersion;
     private String caCertificateFile;
     private String role;
+    private String cacheName;
 
     public ProviderConfig(Scope configScope, String cmdLineOptionPrefix) {
         this.authMethod = configScope.get("auth-method", "kubernetes");
@@ -38,6 +39,7 @@ public class ProviderConfig {
         this.kvVersion = Integer.parseInt(configScope.get("kv-version", "1"));
         this.caCertificateFile = configScope.get("ca-certificate-file");
         this.role = configScope.get("role", "");
+        this.cacheName = configScope.get("cache-name");
 
         if (address == null) {
             logger.error(cmdLineOptionPrefix + "address + must be provided");
@@ -104,6 +106,10 @@ public class ProviderConfig {
         return role;
     }
 
+    public String getCacheName() {
+        return cacheName;
+    }
+
     @Override
     public String toString() {
         return "SecretsProviderConfig{" +
@@ -115,7 +121,7 @@ public class ProviderConfig {
                 ", kvVersion=" + kvVersion +
                 ", caCertificateFile='" + caCertificateFile + '\'' +
                 ", role='" + role + '\'' +
-                ", serviceAccountFile='" + serviceAccountFile + '\'' +
+                ", cacheName=" + (cacheName == null || cacheName.isEmpty() ? "<disabled>" : "'" + cacheName + "'") +
                 '}';
     }
 }

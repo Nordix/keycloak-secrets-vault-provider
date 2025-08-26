@@ -22,6 +22,7 @@ import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jboss.logging.Logger;
+import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.services.ErrorResponse;
@@ -70,6 +71,7 @@ public class SecretsManagerResource {
     private final ProviderConfig providerConfig;
     private final BaoClient baoClient;
     private final String resolvedRealmPathPrefix;
+    private final KeycloakSession session;
 
     public SecretsManagerResource(KeycloakSession session,
             RealmModel realm,
@@ -81,6 +83,7 @@ public class SecretsManagerResource {
         this.auth = auth;
         this.providerConfig = providerConfig;
         this.resolvedRealmPathPrefix = providerConfig.getKvPathPrefix().replace("%realm%", realm.getName());
+        this.session = session;
 
         this.baoClient = new BaoClient(providerConfig.getAddress());
         if (providerConfig.getCaCertificateFile() != null && !providerConfig.getCaCertificateFile().isEmpty()) {
@@ -180,8 +183,10 @@ public class SecretsManagerResource {
         }
 
         try {
-            baoClient.kv1Upsert(providerConfig.getKvMount(), fullPathToSecret(id),
+            String fullPath = fullPathToSecret(id);
+            baoClient.kv1Upsert(providerConfig.getKvMount(), fullPath,
                     Map.of(SECRET_FIELD_NAME, secretValue));
+            evictSecretCache(fullPath);
             SecretResponse secretResponse = new SecretResponse(id, secretValue);
             return Response.status(Response.Status.OK).entity(secretResponse).build();
         } catch (BaoClient.BaoClientException e) {
@@ -212,7 +217,9 @@ public class SecretsManagerResource {
         validateSecretIdFormat(id);
 
         try {
-            baoClient.kv1Delete(providerConfig.getKvMount(), fullPathToSecret(id));
+            String fullPath = fullPathToSecret(id);
+            baoClient.kv1Delete(providerConfig.getKvMount(), fullPath);
+            evictSecretCache(fullPath);
             return Response.noContent().build();
         } catch (BaoClient.BaoClientException e) {
             if (e.getStatusCode() == 404) {
@@ -246,6 +253,16 @@ public class SecretsManagerResource {
             throw ErrorResponse.error("Invalid secret ID format. Must match regex " + SECRET_ID_REGEX,
                     Response.Status.BAD_REQUEST);
         }
+    }
+
+    private void evictSecretCache(String fullPath) {
+        if (providerConfig.getCacheName() == null || providerConfig.getCacheName().isEmpty()) {
+            return;
+        }
+
+        logger.debugv("Evicting secret cache for path {0}", fullPath);
+        session.getProvider(InfinispanConnectionProvider.class)
+                .getCache(providerConfig.getCacheName()).remove(fullPath);
     }
 
     private static String createRandomSecretValue() {

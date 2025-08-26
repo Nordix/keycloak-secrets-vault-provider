@@ -100,3 +100,16 @@ Secrets are automatically restricted to the specific Keycloak realm in which the
 A secret named `ldap-bindpw` created in `my-realm` is not the same as `ldap-bindpw` in `your-realm`.
 
 Secrets Manager is accessible only via the REST API and a user interface within Keycloak Admin Console is not available.
+
+## Caching of Secrets
+
+If vault references are accessed often, connecting to OpenBao or HashiCorp Vault every time can add considerable overhead.
+The extension supports caching of secrets in memory after they are first read.
+Keycloak’s Infinispan is used for this purpose.
+When the same secret is accessed again, it is returned from the cache instead of making a new request.
+
+For caching to work properly, both the Vault SPI provider and the Secrets Manager REST API extension must be set up to use the same cache.
+When a secret is updated or deleted through the Secrets Manager REST API, the cached value is removed from the Infinispan cache.
+This ensures that the next request will always get the latest value.
+If a secret is changed or deleted directly from OpenBao or HashiCorp Vault (not through the Secrets Manager), the extension will not know about it and returns the old value from the cache.
+Cache can be configured with eviction policy to expire the cached secrets periodically to ensure eventual consistency.

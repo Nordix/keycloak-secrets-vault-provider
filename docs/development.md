@@ -47,21 +47,19 @@ To avoid repeatedly setting up the environment during development, you can first
 
 The access information for test environments is as follows:
 
-- OpenBao: [http://127.0.0.127:8200](http://127.0.0.127:8200)
+- OpenBao: http://127.0.0.127:8200
 
   To get the root token and unseal key run
   ```
   kubectl exec $(kubectl get pod -l app=openbao -o jsonpath='{.items[0].metadata.name}') -c openbao-configurator -- cat /unseal/init.json
   ```
-- Keycloak: [http://127.0.0.127:8080](http://127.0.0.127:8080)
+- Keycloak: http://127.0.0.127:8080 (pod keycloak-0) and http://127.0.0.127:8081 (pod keycloak-1)
 
   Admin credentials: `admin` / `admin`
 
-- Federated realm login: [http://127.0.0.127:8080/realms/first/account/](http://127.0.0.127:8080/realms/first/account/)
+- Federated realm login: http://127.0.0.127:8080/realms/first/account/
 
   User in "second" realm: `joe` / `joe`
-
-
 
 
 

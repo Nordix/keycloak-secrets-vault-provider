@@ -79,6 +79,12 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+        <groupId>org.keycloak</groupId>
+        <artifactId>keycloak-model-infinispan</artifactId>
+        <version>${version.keycloak}</version>
+        <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
       <version>${version.jackson.core}</version>

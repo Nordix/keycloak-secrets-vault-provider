@@ -1,15 +1,29 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: keycloak
+  name: keycloak-0
 spec:
   selector:
-    app: keycloak
+    statefulset.kubernetes.io/pod-name: keycloak-0
   ports:
     - protocol: TCP
       port: 8080
       targetPort: 8080
       nodePort: 8080
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-1
+spec:
+  selector:
+    statefulset.kubernetes.io/pod-name: keycloak-1
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      nodePort: 8081
   type: NodePort
 ---
 apiVersion: v1
@@ -38,7 +52,7 @@ spec:
   selector:
     matchLabels:
       app: keycloak
-  replicas: 1
+  replicas: 2
   serviceName: keycloak-headless
   template:
     metadata:
@@ -55,21 +69,25 @@ spec:
               cp /host/target/secrets-provider-*jar /opt/keycloak/providers/secrets-provider.jar
               mkdir -p /opt/keycloak/data/import
               cp /host/testing/configs/keycloak-realms/* /opt/keycloak/data/import/
-              /opt/keycloak/bin/kc.sh start-dev \
+              cp /host/testing/configs/custom-cache-ispn.xml /opt/keycloak/conf/custom-cache-ispn.xml
+              /opt/keycloak/bin/kc.sh start \
                 --import-realm \
                 --spi-vault-provider=secrets-provider \
-                --spi-vault-secrets-provider-address=https://openbao:8200 \
+                --spi-vault-secrets-provider-address=https://openbao:18200 \
                 --spi-vault-secrets-provider-ca-certificate-file=/host/testing/certs/ca.pem \
                 --spi-vault-secrets-provider-kv-mount=secretv1 \
                 --spi-vault-secrets-provider-kv-path-prefix="keycloak/%realm%" \
                 --spi-vault-secrets-provider-kv-version=1 \
                 --spi-vault-secrets-provider-role=keycloak-reader \
-                --spi-admin-realm-restapi-extension-secrets-manager-address=https://openbao:8200 \
+                --spi-vault-secrets-provider-cache-name=vaultExtensionSecrets \
+                --spi-admin-realm-restapi-extension-secrets-manager-address=https://openbao:18200 \
                 --spi-admin-realm-restapi-extension-secrets-manager-ca-certificate-file=/host/testing/certs/ca.pem \
                 --spi-admin-realm-restapi-extension-secrets-manager-kv-mount=secretv1 \
                 --spi-admin-realm-restapi-extension-secrets-manager-kv-path-prefix="keycloak/%realm%" \
                 --spi-admin-realm-restapi-extension-secrets-manager-kv-version=1 \
                 --spi-admin-realm-restapi-extension-secrets-manager-role=keycloak-admin \
+                --spi-admin-realm-restapi-extension-secrets-manager-cache-name=vaultExtensionSecrets \
+                --cache-config-file=custom-cache-ispn.xml \
                 --log-level=INFO,io.github.nordix:debug
           env:
             - name: KC_BOOTSTRAP_ADMIN_USERNAME
@@ -80,6 +98,16 @@ spec:
               value: "true"
             - name: KC_HEALTH_ENABLED
               value: "true"
+            - name: KC_HOSTNAME_STRICT
+              value: "false"
+            - name: KC_DB
+              value: "postgres"
+            - name: KC_DB_URL
+              value: "jdbc:postgresql://postgres/keycloak"
+            - name: KC_DB_USERNAME
+              value: "keycloak"
+            - name: KC_DB_PASSWORD
+              value: "keycloak"
 
           ports:
             - name: http

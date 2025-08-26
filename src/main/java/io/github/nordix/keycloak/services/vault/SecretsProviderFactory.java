@@ -40,7 +40,7 @@ public class SecretsProviderFactory implements VaultProviderFactory {
 
     @Override
     public VaultProvider create(KeycloakSession session) {
-        return new SecretsProvider(session.getContext().getRealm().getName(), config);
+        return new SecretsProvider(session.getContext().getRealm().getName(), config, session);
     }
 
     @Override

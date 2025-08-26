@@ -9,24 +9,22 @@
 
 package io.github.nordix.keycloak.services.secretsmanager;
 
+import java.net.http.HttpResponse;
+import java.util.List;
+import java.util.Map;
+
 import org.jboss.logging.Logger;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import io.github.nordix.junit.KeycloakRestClientExtension;
 import io.github.nordix.junit.LoggingExtension;
-import org.junit.jupiter.api.Assertions;
-
-import java.net.http.HttpResponse;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 @ExtendWith(LoggingExtension.class)
 class SecretsManagerIT {
@@ -40,7 +38,8 @@ class SecretsManagerIT {
     private final SecretsCleanupExtension secretsCleanup = new SecretsCleanupExtension();
 
     @RegisterExtension
-    private final KeycloakRestClientExtension keycloakAdminClient = new KeycloakRestClientExtension(KEYCLOAK_BASE_URL);
+    private final KeycloakRestClientExtension keycloakAdminClient = new KeycloakRestClientExtension(
+            KEYCLOAK_BASE_URL);
 
     private static final String REALM = "first";
     private static final String API_PATH = "/admin/realms/" + REALM + "/secrets-manager";
@@ -238,7 +237,8 @@ class SecretsManagerIT {
         Assertions.assertEquals(405, postResp.statusCode(), "POST should not be allowed");
 
         HttpResponse<JsonNode> patchResp = keycloakAdminClient
-                .sendRequest(API_PATH + "/invalid-update-with-patch", "PATCH", Map.of("secret", "value"));
+                .sendRequest(API_PATH + "/invalid-update-with-patch", "PATCH",
+                        Map.of("secret", "value"));
         Assertions.assertEquals(405, patchResp.statusCode(), "PATCH should not be allowed");
     }
 
@@ -252,9 +252,12 @@ class SecretsManagerIT {
                     if (idsNode != null && idsNode.isArray()) {
                         for (JsonNode idNode : idsNode) {
                             String id = idNode.asText();
-                            HttpResponse<JsonNode> delResp = keycloakAdminClient.sendRequest(API_PATH + "/" + id, "DELETE");
-                            if (delResp.statusCode() != 204 && delResp.statusCode() != 404) {
-                                logger.warnv("Failed to delete secret {0}, status: {1}", id, delResp.statusCode());
+                            HttpResponse<JsonNode> delResp = keycloakAdminClient
+                                    .sendRequest(API_PATH + "/" + id, "DELETE");
+                            if (delResp.statusCode() != 204
+                                    && delResp.statusCode() != 404) {
+                                logger.warnv("Failed to delete secret {0}, status: {1}",
+                                        id, delResp.statusCode());
                             }
                         }
                     }
