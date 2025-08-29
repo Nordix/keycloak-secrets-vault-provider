@@ -94,12 +94,12 @@ Example Infinispan cache configuration:
 ```
 
 This will have the following cache behavior:
-- A replicated cache distributes entries across the cluster while each node keeps its own copy.
+- A replicated cache distributes entries across the Keycloak cluster while each node keeps its own copy.
 - The eviction policy is set for maximum of 1000 cached secrets. When the cache reaches this limit, the least recently used entries will be removed from the cache.
-- Cached secrets remain in memory as long as at least one cluster node is alive.
+- Cached secrets remain in memory as long as at least one Keycloak instance is alive.
 - The cache key and value are both stored as UTF-8 encoded strings. The cache key used by the extension is the path to KV secrets engine and the cache value is the secret itself.
 
-When secrets are updated or deleted through the Secrets Manager API, the replicated cache ensures that entries are invalidated across the entire cluster, so subsequent reads retrieve the latest values.
+When secrets are updated or deleted through the Secrets Manager API, the replicated cache ensures that entries are invalidated across the entire Keycloak cluster, so subsequent reads retrieve the latest values.
 If secrets are changed directly in OpenBao or HashiCorp Vault (not via the Secrets Manager API), cached values become stale.
 To work around this, expiration policy can be configured for the cache.
 With expiration enabled, stale secrets will only remain in the cache until their configured lifespan elapses, after which they will be refreshed on the next access.
