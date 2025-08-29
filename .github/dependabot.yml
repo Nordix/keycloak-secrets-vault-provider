@@ -16,7 +16,13 @@ updates:
       junit:
         patterns:
           - "org.junit.*"
+          
   - package-ecosystem: "docker"
     directory: "/testing/manifests"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "github-actions"
+    directory: "/.github"
     schedule:
       interval: "weekly"
