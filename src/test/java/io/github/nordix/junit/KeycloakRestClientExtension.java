@@ -60,7 +60,7 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
         this.password = password;
     }
 
-    public void login() {
+    public KeycloakRestClientExtension login() {
         try {
             String body = "client_id=" + CLIENT_ID + "&username=" + username + "&password=" + password + "&grant_type="
                     + GRANT_TYPE;
@@ -76,6 +76,7 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
         } catch (Exception e) {
             throw new RuntimeException("Failed to get token", e);
         }
+        return this;
     }
 
     /**

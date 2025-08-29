@@ -242,6 +242,40 @@ class SecretsManagerIT {
         Assertions.assertEquals(405, patchResp.statusCode(), "PATCH should not be allowed");
     }
 
+    @Test
+    void testUnauthorizedAccess() {
+        try {
+            keycloakAdminClient.createRealm("unauthorized");
+            keycloakAdminClient.createUser("unauthorized", "not-admin", "password");
+
+            // Create new client with no admin privileges.
+            KeycloakRestClientExtension client = new KeycloakRestClientExtension(KEYCLOAK_BASE_URL, "unauthorized",
+                    "not-admin", "password").login();
+
+            // Attempt to create/update secret.
+            HttpResponse<JsonNode> createResp = client
+                    .sendRequest("/admin/realms/unauthorized/secrets-manager/my-secret", "PUT", Map.of("secret", "value"));
+            Assertions.assertEquals(403, createResp.statusCode());
+
+            // Attempt to get secret.
+            HttpResponse<JsonNode> getResp = client
+                    .sendRequest("/admin/realms/unauthorized/secrets-manager/my-secret", "GET");
+            Assertions.assertEquals(403, getResp.statusCode());
+
+            // Attempt to delete secret.
+            HttpResponse<JsonNode> deleteResp = client
+                    .sendRequest("/admin/realms/unauthorized/secrets-manager/my-secret", "DELETE");
+            Assertions.assertEquals(403, deleteResp.statusCode());
+
+            // Attempt to list all secrets.
+            HttpResponse<JsonNode> listResp = client
+                    .sendRequest("/admin/realms/unauthorized/secrets-manager", "GET");
+            Assertions.assertEquals(403, listResp.statusCode());
+        } finally {
+            keycloakAdminClient.deleteRealm("unauthorized");
+        }
+    }
+
     class SecretsCleanupExtension implements AfterEachCallback {
         @Override
         public void afterEach(ExtensionContext context) {
