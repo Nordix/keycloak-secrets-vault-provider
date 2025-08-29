@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.jboss.logging.Logger;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -32,10 +33,6 @@ class SecretsManagerIT {
     private static Logger logger = Logger.getLogger(SecretsManagerIT.class);
 
     private static final String KEYCLOAK_BASE_URL = "http://127.0.0.127:8080";
-
-    // Delete all secrets after each test.
-    @RegisterExtension
-    private final SecretsCleanupExtension secretsCleanup = new SecretsCleanupExtension();
 
     @RegisterExtension
     private final KeycloakRestClientExtension keycloakAdminClient = new KeycloakRestClientExtension(
@@ -276,30 +273,28 @@ class SecretsManagerIT {
         }
     }
 
-    class SecretsCleanupExtension implements AfterEachCallback {
-        @Override
-        public void afterEach(ExtensionContext context) {
-            try {
-                HttpResponse<JsonNode> listResp = keycloakAdminClient.sendRequest(API_PATH, "GET");
-                if (listResp.statusCode() == 200) {
-                    JsonNode idsNode = listResp.body().get("secret_ids");
-                    if (idsNode != null && idsNode.isArray()) {
-                        for (JsonNode idNode : idsNode) {
-                            String id = idNode.asText();
-                            HttpResponse<JsonNode> delResp = keycloakAdminClient
-                                    .sendRequest(API_PATH + "/" + id, "DELETE");
-                            if (delResp.statusCode() != 204
-                                    && delResp.statusCode() != 404) {
-                                logger.warnv("Failed to delete secret {0}, status: {1}",
-                                        id, delResp.statusCode());
-                            }
+    @AfterEach
+    void cleanUpSecrets() {
+        try {
+            HttpResponse<JsonNode> listResp = keycloakAdminClient.sendRequest(API_PATH, "GET");
+            if (listResp.statusCode() == 200) {
+                JsonNode idsNode = listResp.body().get("secret_ids");
+                if (idsNode != null && idsNode.isArray()) {
+                    logger.debugv("Cleaning up secrets: {0}", idsNode);
+                    for (JsonNode idNode : idsNode) {
+                        String id = idNode.asText();
+                        HttpResponse<JsonNode> delResp = keycloakAdminClient
+                                .sendRequest(API_PATH + "/" + id, "DELETE");
+                        if (delResp.statusCode() != 204
+                                && delResp.statusCode() != 404) {
+                            logger.warnv("Failed to delete secret {0}, status: {1}",
+                                    id, delResp.statusCode());
                         }
                     }
                 }
-            } catch (Exception e) {
-                logger.warnv(e, "Exception during secrets cleanup");
             }
+        } catch (Exception e) {
+            logger.warnv(e, "Exception during secrets cleanup");
         }
     }
-
 }
