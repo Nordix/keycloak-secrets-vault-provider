@@ -69,7 +69,7 @@ public class SecretsManagerResource {
     private final RealmModel realm;
     private final AdminPermissionEvaluator auth;
     private final ProviderConfig providerConfig;
-    private final BaoClient baoClient;
+    private BaoClient baoClient;
     private final String resolvedRealmPathPrefix;
     private final KeycloakSession session;
 
@@ -84,19 +84,6 @@ public class SecretsManagerResource {
         this.providerConfig = providerConfig;
         this.resolvedRealmPathPrefix = providerConfig.getKvPathPrefix().replace("%realm%", realm.getName());
         this.session = session;
-
-        this.baoClient = new BaoClient(providerConfig.getAddress());
-        if (providerConfig.getCaCertificateFile() != null && !providerConfig.getCaCertificateFile().isEmpty()) {
-            this.baoClient.withCaCertificateFile(providerConfig.getCaCertificateFile());
-        }
-
-        try {
-            this.baoClient.loginWithKubernetes(providerConfig.getServiceAccountFile(), providerConfig.getRole());
-        } catch (IOException e) {
-            logger.errorv(e, "Failed to login to OpenBao/Vault using Kubernetes auth for realm {0}",
-                    realm.getName());
-            throw new RuntimeException("Failed to login to OpenBao/Vault using Kubernetes auth: " + e.getMessage(), e);
-        }
     }
 
     @GET
@@ -106,7 +93,7 @@ public class SecretsManagerResource {
     @APIResponse(responseCode = "500", description = "Internal server error")
     public Response listSecrets() {
 
-        auth.realm().requireManageRealm();
+        authorizeRequest();
 
         logger.debugv("Listing all secrets for realm {0}", realm.getName());
 
@@ -130,7 +117,7 @@ public class SecretsManagerResource {
             @Parameter(description = "ID of the secret to retrieve. Must match the regex " + SECRET_ID_REGEX
                     + " and must exist.", required = true) @PathParam("id") String id) {
 
-        auth.realm().requireManageRealm();
+        authorizeRequest();
 
         logger.debugv("Retrieving secret with ID: {0} in realm {1}", id, realm.getName());
 
@@ -170,7 +157,8 @@ public class SecretsManagerResource {
                     + " and must exist.", required = true) @PathParam("id") String id,
             @RequestBody(description = "Optional secret data. If not provided, a random secret will be generated.", required = false) SecretRequest secretRequest) {
 
-        auth.realm().requireManageRealm();
+
+        authorizeRequest();
 
         validateSecretIdFormat(id);
 
@@ -210,7 +198,7 @@ public class SecretsManagerResource {
             @Parameter(description = "ID of the secret to delete. Must match the regex " + SECRET_ID_REGEX
                     + " and must exist.", required = true) @PathParam("id") String id) {
 
-        auth.realm().requireManageRealm();
+        authorizeRequest();
 
         logger.debugv("Deleting secret with ID: {0} in realm {1}", id, realm.getName());
 
@@ -228,6 +216,28 @@ public class SecretsManagerResource {
                 logger.errorv(e, "Error deleting secret {0} for realm {1}", id, realm.getName());
                 throw ErrorResponse.error("Error deleting secret", Response.Status.INTERNAL_SERVER_ERROR);
             }
+        }
+    }
+
+    /**
+     * Checks that requester is authorized to manage secrets.
+     * Only if authorized, log in to OpenBao/HashiCorp Vault.
+     */
+    private void authorizeRequest() {
+        // Check manage-realm permission, throws if unauthorized.
+        auth.realm().requireManageRealm();
+
+        this.baoClient = new BaoClient(providerConfig.getAddress());
+        if (providerConfig.getCaCertificateFile() != null && !providerConfig.getCaCertificateFile().isEmpty()) {
+            this.baoClient.withCaCertificateFile(providerConfig.getCaCertificateFile());
+        }
+
+        try {
+            this.baoClient.loginWithKubernetes(providerConfig.getServiceAccountFile(), providerConfig.getRole());
+        } catch (IOException e) {
+            logger.errorv(e, "Failed to login to OpenBao/Vault using Kubernetes auth for realm {0}",
+                    realm.getName());
+            throw new RuntimeException("Failed to login to OpenBao/Vault using Kubernetes auth: " + e.getMessage(), e);
         }
     }
 
