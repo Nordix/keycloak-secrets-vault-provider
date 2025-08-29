@@ -13,11 +13,17 @@ kubeadmConfigPatches:
 nodes:
 - role: control-plane
   extraPortMappings:
+  # OpenBao HTTP
   - containerPort: 8200
     hostPort: 8200
     listenAddress: "127.0.0.127"
+  # Keycloak-0 HTTP
   - containerPort: 8080
     hostPort: 8080
+    listenAddress: "127.0.0.127"
+  # Keycloak-1 HTTP
+  - containerPort: 8081
+    hostPort: 8081
     listenAddress: "127.0.0.127"
   extraMounts:
    - hostPath: ./

@@ -48,6 +48,7 @@ The provider works with both OpenBao and HashiCorp Vault, since both implement t
 | `--spi-vault-secrets-provider-kv-version`           | KV secrets engine version (only `1` is supported).                        | `1`                                                   |
 | `--spi-vault-secrets-provider-ca-certificate-file`  | Path to CA certificate file for HTTPS connections. Optional.              | N/A                                                   |
 | `--spi-vault-secrets-provider-role`                 | Role to use for authentication.                                           | N/A                                                   |
+| `--spi-vault-secrets-provider-cache-name`           | Name of the Infinispan cache to use for storing secrets.                  | N/A (caching is disabled)                             |
 
 The `%realm%` variable will be replaced with the actual realm name at runtime.
 
@@ -63,8 +64,58 @@ The `%realm%` variable will be replaced with the actual realm name at runtime.
 | `--spi-admin-realm-restapi-extension-secrets-manager-kv-version`           | KV secrets engine version (only `1` is supported).                                                | `1`                                                   |
 | `--spi-admin-realm-restapi-extension-secrets-manager-ca-certificate-file`  | Path to CA certificate file for HTTPS connections. Optional.                                      | N/A                                                   |
 | `--spi-admin-realm-restapi-extension-secrets-manager-role`                 | Role to use for authentication.                                                                   | N/A                                                   |
+| `--spi-admin-realm-restapi-extension-secrets-manager-cache-name`           | Name of the Infinispan cache to use for storing secrets.                                          | N/A (caching is disabled)                             |
 
 The `%realm%` variable will be replaced with the actual realm name at runtime.
+
+### Enabling and Configuring Secret Caching (Optional)
+
+If Vault secrets are read frequently, contacting OpenBao or HashiCorp Vault for every access can add significant latency and load.
+Enabling caching reduces requests and improves performance by keeping secrets in Keycloak's Infinispan cache.
+
+To enable caching:
+1. Define a cache in custom Infinispan configuration file.
+2. Point Keycloak to that file using the `--cache-config-file` parameter (or the corresponding environment variable/property).
+3. Set both `--spi-vault-secrets-provider-cache-name` and `--spi-admin-realm-restapi-extension-secrets-manager-cache-name` to the name of the Infinispan cache. Both parameters must use the same cache name for caching to work across the Vault provider and the Secrets Manager.
+
+See Keycloak's [Configuring distributed caches](https://www.keycloak.org/server/caching) for more details on configuring caches.
+
+Example Infinispan cache configuration:
+
+```xml
+<replicated-cache name="vaultExtensionSecrets">
+    <expiration lifespan="-1"/>
+    <memory max-count="1000"/>
+    <encoding>
+        <key media-type="text/plain; charset=UTF-8"/>
+        <value media-type="text/plain; charset=UTF-8"/>
+    </encoding>
+</replicated-cache>
+```
+
+This will have the following cache behavior:
+- A replicated cache distributes entries across the cluster while each node keeps its own copy.
+- The eviction policy is set for maximum of 1000 cached secrets. When the cache reaches this limit, the least recently used entries will be removed from the cache.
+- Cached secrets remain in memory as long as at least one cluster node is alive.
+- The cache key and value are both stored as UTF-8 encoded strings. The cache key used by the extension is the path to KV secrets engine and the cache value is the secret itself.
+
+When secrets are updated or deleted through the Secrets Manager API, the replicated cache ensures that entries are invalidated across the entire cluster, so subsequent reads retrieve the latest values.
+If secrets are changed directly in OpenBao or HashiCorp Vault (not via the Secrets Manager API), cached values become stale.
+To work around this, expiration policy can be configured for the cache.
+With expiration enabled, stale secrets will only remain in the cache until their configured lifespan elapses, after which they will be refreshed on the next access.
+
+Example with a 60 second expiration:
+
+```xml
+<replicated-cache name="vaultExtensionSecrets">
+    <expiration lifespan="60000"/>
+    <memory max-count="1000"/>
+    <encoding>
+        <key media-type="text/plain; charset=UTF-8"/>
+        <value media-type="text/plain; charset=UTF-8"/>
+    </encoding>
+</replicated-cache>
+```
 
 ### Configuring OpenBao or HashiCorp Vault for the Extension
 

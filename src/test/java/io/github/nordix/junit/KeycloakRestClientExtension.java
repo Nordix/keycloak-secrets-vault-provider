@@ -11,12 +11,16 @@ package io.github.nordix.junit;
 
 import java.net.URI;
 import java.net.http.HttpResponse;
+import java.util.List;
+import java.util.Map;
 
 import org.jboss.logging.Logger;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.github.nordix.baoclient.RestClient;
 
@@ -33,7 +37,8 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
     private final String password;
 
     /**
-     * Creates a KeycloakRestClientExtension with the specified base URL and default admin credentials.
+     * Create a Keycloak ADMIN REST client with the specified base URL and default
+     * admin credentials.
      *
      * @param baseUrl the base URL of the Keycloak server
      */
@@ -42,9 +47,9 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
     }
 
     /**
-     * Creates a KeycloakRestClientExtension with the specified base URL and credentials.
+     * Create a Keycloak ADMIN REST client with given base URL and credentials.
      *
-     * @param baseUrl the base URL of the Keycloak server
+     * @param baseUrl  the base URL of the Keycloak server
      * @param username the username to use for authentication
      * @param password the password to use for authentication
      */
@@ -62,7 +67,7 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
             HttpResponse<JsonNode> resp = this
                     .withHeader("Content-Type", "application/x-www-form-urlencoded")
                     .sendRequest("/realms/" + realm + "/protocol/openid-connect/token", "POST", body);
-            if (resp.statusCode() != 200) {
+            if (resp.statusCode() / 100 != 2) {
                 throw new RuntimeException("Failed to get token: " + resp.body());
             }
             this.removeAllHeaders();
@@ -74,9 +79,9 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
     }
 
     /**
-     * Polls until Keycloak returns 200 OK, or retry count exceeds.
+     * Poll until Keycloak returns 200 OK, or retry count exceeds.
      */
-    @SuppressWarnings("java:S2925")  // Suppress sonarqube warning for Thread.sleep usage
+    @SuppressWarnings("java:S2925") // Suppress sonarqube warning for Thread.sleep usage.
     public void waitForReady() {
         int notReadyCount = 0;
         final int maxNotReady = 120;
@@ -93,7 +98,8 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
                 notReadyCount++;
             }
             if (notReadyCount >= maxNotReady) {
-                throw new RuntimeException("/realms/master not returning 200 OK for " + maxNotReady + " consecutive times");
+                throw new RuntimeException(
+                        "/realms/master not returning 200 OK for " + maxNotReady + " consecutive times");
             }
             try {
                 Thread.sleep(pollIntervalMillis);
@@ -102,6 +108,106 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
                 throw new RuntimeException("Polling interrupted", ie);
             }
         }
+    }
+
+    /**
+     * Create a new realm.
+     *
+     * @param realmName the name of the realm to create
+     */
+    public void createRealm(String realmName) {
+        logger.infov("Creating realm: {0}", realmName);
+        HttpResponse<JsonNode> resp = sendRequest("/admin/realms", "POST", Map.of(
+                "realm", realmName,
+                "enabled", true));
+        Assertions.assertEquals(201, resp.statusCode(), "Failed to create realm: + " + realmName + " " + resp.body());
+    }
+
+    /**
+     * Delete a realm.
+     *
+     * @param realmName the name of the realm to delete
+     */
+    public void deleteRealm(String realmName) {
+        logger.infov("Deleting realm: {0}", realmName);
+        HttpResponse<JsonNode> resp = sendRequest("/admin/realms/" + realmName, "DELETE");
+        Assertions.assertEquals(204, resp.statusCode(), "Failed to delete realm: " + realmName + " " + resp.body());
+    }
+
+    /**
+     * Create a new client.
+     *
+     * @param realmName    the name of the realm to create the client in
+     * @param clientName   the name of the client to create
+     * @param clientSecret the secret of the client to create
+     */
+    public void createClient(String realmName, String clientName, String clientSecret, List<String> baseUrls) {
+        logger.infov("Creating client: {0} in realm: {1}", clientName, realmName);
+        HttpResponse<JsonNode> resp = sendRequest("/admin/realms/" + realmName + "/clients", "POST", Map.of(
+                "clientId", clientName,
+                "enabled", true,
+                "protocol", "openid-connect",
+                "publicClient", false,
+                "serviceAccountsEnabled", true,
+                "redirectUris", baseUrls.stream().map(url -> url + "/*").toList(),
+                "webOrigins", baseUrls.stream().map(url -> url + "/*").toList(),
+                "secret", clientSecret));
+        Assertions.assertEquals(201, resp.statusCode(), "Failed to create client: " + clientName + " " + resp.body());
+    }
+
+    /**
+     * Create a new user.
+     *
+     * @param realmName    the name of the realm to create the user in
+     * @param userName     the name of the user to create
+     * @param userPassword the password of the user to create
+     */
+    public void createUser(String realmName, String userName, String userPassword) {
+        logger.infov("Creating user: {0} in realm: {1}", userName, realmName);
+        HttpResponse<JsonNode> resp = sendRequest("/admin/realms/" + realmName + "/users", "POST", Map.of(
+                "username", userName,
+                "enabled", true,
+                "email", "email@example.com",
+                "firstName", "First",
+                "lastName", "Last",
+                "credentials", List.of(Map.of(
+                        "type", "password",
+                        "value", userPassword,
+                        "temporary", false))));
+        Assertions.assertEquals(201, resp.statusCode(), "Failed to create user: " + userName + " " + resp.body());
+    }
+
+    /**
+     * Update a client attribute.
+     *
+     * @param realmName      the name of the realm
+     * @param clientName     the name of the client
+     * @param parameterName  the name of the attribute to update
+     * @param parameterValue the new value of the attribute
+     */
+    public void updateClientAttribute(String realmName, String clientName, String parameterName,
+            String parameterValue) {
+        logger.infov("Updating client parameter: {0} for client: {1} in realm: {2}", parameterName, clientName,
+                realmName);
+
+        // Get the configuration of existing client.
+        HttpResponse<JsonNode> getResp = sendRequest(
+                "/admin/realms/" + realmName + "/clients?clientId=" + clientName, "GET");
+        Assertions.assertEquals(2, getResp.statusCode() / 100, "Failed to fetch client by clientId");
+        JsonNode clients = getResp.body();
+        Assertions.assertTrue(clients.isArray() && clients.size() > 0, "Client not found");
+        JsonNode client = clients.get(0);
+        String clientId = client.get("id").asText();
+
+        // Update the client with the new parameter value.
+        ObjectNode updatedClient = (ObjectNode) client;
+        updatedClient.put(parameterName, parameterValue);
+
+        HttpResponse<JsonNode> updateResp = sendRequest(
+                "/admin/realms/" + realmName + "/clients/" + clientId, "PUT", updatedClient.toString());
+
+        Assertions.assertEquals(204, updateResp.statusCode(),
+                "Failed to update client parameter: " + parameterName + " " + updateResp.body());
     }
 
     public void beforeEach(ExtensionContext context) throws Exception {
