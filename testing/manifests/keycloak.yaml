@@ -109,6 +109,11 @@ spec:
             - name: KC_DB_PASSWORD
               value: "keycloak"
 
+            # Following could be used to disable HTTP/2 for easier debugging with Wireshark.
+            # It does not currently disable h2c due to https://github.com/quarkusio/quarkus/pull/49634
+            #- name: QUARKUS_HTTP_HTTP2
+            #  value: "false"
+
           ports:
             - name: http
               containerPort: 8080

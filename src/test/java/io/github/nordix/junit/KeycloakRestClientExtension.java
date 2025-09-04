@@ -11,6 +11,7 @@ package io.github.nordix.junit;
 
 import java.net.URI;
 import java.net.http.HttpResponse;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -60,6 +61,11 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
         this.password = password;
     }
 
+    /**
+     * Login to Keycloak and set the Authorization header for subsequent requests.
+     *
+     * @return the KeycloakRestClientExtension instance
+     */
     public KeycloakRestClientExtension login() {
         try {
             String body = "client_id=" + CLIENT_ID + "&username=" + username + "&password=" + password + "&grant_type="
@@ -67,7 +73,7 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
             HttpResponse<JsonNode> resp = this
                     .withHeader("Content-Type", "application/x-www-form-urlencoded")
                     .sendRequest("/realms/" + realm + "/protocol/openid-connect/token", "POST", body);
-            if (resp.statusCode() / 100 != 2) {
+            if (RestClient.isErrorResponse(resp)) {
                 throw new RuntimeException("Failed to get token: " + resp.body());
             }
             this.removeAllHeaders();
@@ -121,7 +127,7 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
         HttpResponse<JsonNode> resp = sendRequest("/admin/realms", "POST", Map.of(
                 "realm", realmName,
                 "enabled", true));
-        Assertions.assertEquals(201, resp.statusCode(), "Failed to create realm: + " + realmName + " " + resp.body());
+        Assertions.assertTrue(RestClient.isSuccessfulResponse(resp), "Failed to create realm: " + realmName + " " + resp.body());
     }
 
     /**
@@ -132,7 +138,7 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
     public void deleteRealm(String realmName) {
         logger.infov("Deleting realm: {0}", realmName);
         HttpResponse<JsonNode> resp = sendRequest("/admin/realms/" + realmName, "DELETE");
-        Assertions.assertEquals(204, resp.statusCode(), "Failed to delete realm: " + realmName + " " + resp.body());
+        Assertions.assertTrue(RestClient.isSuccessfulResponse(resp), "Failed to delete realm: " + realmName + " " + resp.body());
     }
 
     /**
@@ -153,7 +159,7 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
                 "redirectUris", baseUrls.stream().map(url -> url + "/*").toList(),
                 "webOrigins", baseUrls.stream().map(url -> url + "/*").toList(),
                 "secret", clientSecret));
-        Assertions.assertEquals(201, resp.statusCode(), "Failed to create client: " + clientName + " " + resp.body());
+        Assertions.assertTrue(RestClient.isSuccessfulResponse(resp), "Failed to create client: " + clientName + " " + resp.body());
     }
 
     /**
@@ -162,9 +168,17 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
      * @param realmName    the name of the realm to create the user in
      * @param userName     the name of the user to create
      * @param userPassword the password of the user to create
+     * @param clientRoles  a map of client roles to assign to the user
+     *
+     * clientRoles looks like this:
+     * {
+     *   "client-id-1": ["role-1", "role-2"],
+     *   "client-id-2": ["role-3"]
+     * }
      */
     public void createUser(String realmName, String userName, String userPassword) {
         logger.infov("Creating user: {0} in realm: {1}", userName, realmName);
+
         HttpResponse<JsonNode> resp = sendRequest("/admin/realms/" + realmName + "/users", "POST", Map.of(
                 "username", userName,
                 "enabled", true,
@@ -175,7 +189,8 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
                         "type", "password",
                         "value", userPassword,
                         "temporary", false))));
-        Assertions.assertEquals(201, resp.statusCode(), "Failed to create user: " + userName + " " + resp.body());
+        Assertions.assertTrue(RestClient.isSuccessfulResponse(resp),
+                "Failed to create user: " + userName + " " + resp.body());
     }
 
     /**
@@ -194,7 +209,7 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
         // Get the configuration of existing client.
         HttpResponse<JsonNode> getResp = sendRequest(
                 "/admin/realms/" + realmName + "/clients?clientId=" + clientName, "GET");
-        Assertions.assertEquals(2, getResp.statusCode() / 100, "Failed to fetch client by clientId");
+        Assertions.assertTrue(RestClient.isSuccessfulResponse(getResp), "Failed to fetch client by clientId");
         JsonNode clients = getResp.body();
         Assertions.assertTrue(clients.isArray() && clients.size() > 0, "Client not found");
         JsonNode client = clients.get(0);
@@ -207,8 +222,32 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
         HttpResponse<JsonNode> updateResp = sendRequest(
                 "/admin/realms/" + realmName + "/clients/" + clientId, "PUT", updatedClient.toString());
 
-        Assertions.assertEquals(204, updateResp.statusCode(),
-                "Failed to update client parameter: " + parameterName + " " + updateResp.body());
+        Assertions.assertTrue(RestClient.isSuccessfulResponse(updateResp),
+                "Failed to update client: " + clientName + " " + updateResp.body());
+    }
+
+    /**
+     * Perform a partial import to a realm.
+     * This can be used to add users and clients easier than creating them one by one, which also requires fetching IDs.
+     *
+     * @param realmName the name of the realm to import to
+     * @param users     a list of user representations to import
+     * @param clients   a list of client representations to import
+     */
+
+    public void partialImport(String realmName, List<Map<String, Object>> users, List<Map<String, Object>> clients) {
+        logger.infov("Performing partial import to realm: {0}", realmName);
+        Map<String, Object> params = new HashMap<>();
+        params.put("ifResourceExists", "OVERWRITE");
+        params.put("realm", realmName);
+        if (users != null && !users.isEmpty()) {
+            params.put("users", users);
+        }
+        if (clients != null && !clients.isEmpty()) {
+            params.put("clients", clients);
+        }
+        HttpResponse<JsonNode> resp = sendRequest("/admin/realms/" + realmName + "/partialImport", "POST", params);
+        Assertions.assertTrue(RestClient.isSuccessfulResponse(resp), "Failed to perform partial import to realm: " + realmName + " " + resp.body());
     }
 
     public void beforeEach(ExtensionContext context) throws Exception {

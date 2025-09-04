@@ -31,6 +31,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.github.nordix.baoclient.RestClient;
 import io.github.nordix.junit.KeycloakRestClientExtension;
 import io.github.nordix.junit.LoggingExtension;
 import io.github.nordix.junit.Metrics;
@@ -64,6 +65,8 @@ class SecretsProviderIT {
     private static final KeycloakRestClientExtension keycloak0AdminClient = new KeycloakRestClientExtension(
             KEYCLOAK_0_BASE_URL);
 
+    // The Keycloak client for keycloak-1 is not directly used in the tests,
+    // but it ensures both Keycloak instances are ready before the tests execute.
     @RegisterExtension
     private static final KeycloakRestClientExtension keycloak1AdminClient = new KeycloakRestClientExtension(
             KEYCLOAK_1_BASE_URL);
@@ -159,7 +162,8 @@ class SecretsProviderIT {
      *     <expiration lifespan="5000"/>
      * and restart Keycloak.
      */
-    @Disabled("Disabled due to manual cache expiration configuration update requirement.")
+    @Disabled("Disabled due to manual cache expiration configuration update requirement (see comment).")
+    @SuppressWarnings("java:S2925") // Suppress sonarqube warning for Thread.sleep usage.
     @Test
     void testSecretCacheExpiry() throws InterruptedException {
         consumerRealm.storeSecret("idp.federator", PROVIDER_CLIENT_SECRET);
@@ -297,7 +301,8 @@ class SecretsProviderIT {
             HttpResponse<JsonNode> response = keycloak0AdminClient.sendRequest(
                     "/admin/realms/" + CONSUMER_REALM + "/secrets-manager/" + secretName, "PUT",
                     Map.of("secret", secretValue));
-            Assertions.assertEquals(200, response.statusCode(), "Failed to create secret");
+            Assertions.assertTrue(RestClient.isSuccessfulResponse(response),
+                    "Failed to store secret: " + secretName + " " + response.body());
         }
 
         @Override
@@ -307,16 +312,13 @@ class SecretsProviderIT {
             try {
                 HttpResponse<JsonNode> listResp = keycloak0AdminClient
                         .sendRequest("/admin/realms/" + CONSUMER_REALM + "/secrets-manager", "GET");
-                if (listResp.statusCode() == 200) {
+                if (RestClient.isSuccessfulResponse(listResp)) {
                     JsonNode idsNode = listResp.body().get("secret_ids");
                     if (idsNode != null && idsNode.isArray()) {
                         for (JsonNode idNode : idsNode) {
                             String id = idNode.asText();
-                            HttpResponse<JsonNode> delResp = keycloak0AdminClient.sendRequest(
+                            keycloak0AdminClient.sendRequest(
                                     "/admin/realms/" + CONSUMER_REALM + "/secrets-manager/" + id, "DELETE");
-                            if (delResp.statusCode() != 204 && delResp.statusCode() != 404) {
-                                logger.warnv("Failed to delete secret {0}, status: {1}", id, delResp.statusCode());
-                            }
                         }
                     }
                 }
