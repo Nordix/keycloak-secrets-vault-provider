@@ -24,12 +24,25 @@ To deploy the Keycloak Vault Provider SPI extension, follow these steps:
 
 ## Configuration
 
+### ⚠️ Keycloak SPI option names now follow a new format
+
+When reading the following chapters, keep in mind the new naming scheme for SPI options.
+The new double-dash `--` syntax is now used to separate components of the SPI option names.
+The following table gives an example of the change:
+
+| Parameter naming prior Keycloak 26.3.0 | Keycloak 26.3.0 and later                |
+| -------------------------------------- | ---------------------------------------- |
+| `--spi-vault-provider`                 | `--spi-vault--provider`                  |
+| `--spi-vault-secrets-provider-address` | `--spi-vault--secrets-provider--address` |
+
+For further details, refer to Keycloak's [Configuring providers](https://www.keycloak.org/server/configuration-provider) documentation and the chapter "Deprecated features" in Keycloak's [Migrating to 26.3.0](https://www.keycloak.org/docs/latest/upgrading/index.html#migrating-to-26-3-0) for more information on the change.
+
 ### Enable Vault Provider (Mandatory)
 
 Add the following command line parameter to `kc.sh` to choose the provider:
 
 ```
---spi-vault-provider=secrets-provider
+--spi-vault--provider=secrets-provider
 ```
 
 The provider works with both OpenBao and HashiCorp Vault, since both implement the same REST API.
@@ -38,33 +51,35 @@ The provider works with both OpenBao and HashiCorp Vault, since both implement t
 
 #### Vault Secrets Provider
 
-| Parameter                                           | Description                                                               | Default Value                                         |
-| --------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `--spi-vault-secrets-provider-address`              | Address (URL) of the OpenBao or HashiCorp Vault server. Must be provided. | N/A                                                   |
-| `--spi-vault-secrets-provider-auth-method`          | Authentication method to use (only `kubernetes` is supported).            | `kubernetes`                                          |
-| `--spi-vault-secrets-provider-service-account-file` | Path to the Kubernetes service account token file for authentication.     | `/var/run/secrets/kubernetes.io/serviceaccount/token` |
-| `--spi-vault-secrets-provider-kv-mount`             | KV secrets engine mount point.                                            | `secret`                                              |
-| `--spi-vault-secrets-provider-kv-path-prefix`       | Path prefix for secrets. Supports `%realm%` variable.                     | `keycloak/%realm%`                                    |
-| `--spi-vault-secrets-provider-kv-version`           | KV secrets engine version (only `1` is supported).                        | `1`                                                   |
-| `--spi-vault-secrets-provider-ca-certificate-file`  | Path to CA certificate file for HTTPS connections. Optional.              | N/A                                                   |
-| `--spi-vault-secrets-provider-role`                 | Role to use for authentication.                                           | N/A                                                   |
-| `--spi-vault-secrets-provider-cache-name`           | Name of the Infinispan cache to use for storing secrets.                  | N/A (caching is disabled)                             |
+| Parameter                                             | Description                                                               | Default Value                                         |
+| ----------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `--spi-vault--secrets-provider--enabled`              | Enable or disable the secrets provider extension.                         | `true`                                                |
+| `--spi-vault--secrets-provider--address`              | Address (URL) of the OpenBao or HashiCorp Vault server. Must be provided. | N/A                                                   |
+| `--spi-vault--secrets-provider--auth-method`          | Authentication method to use (only `kubernetes` is supported).            | `kubernetes`                                          |
+| `--spi-vault--secrets-provider--service-account-file` | Path to the Kubernetes service account token file for authentication.     | `/var/run/secrets/kubernetes.io/serviceaccount/token` |
+| `--spi-vault--secrets-provider--kv-mount`             | KV secrets engine mount point.                                            | `secret`                                              |
+| `--spi-vault--secrets-provider--kv-path-prefix`       | Path prefix for secrets. Supports `%realm%` variable.                     | `keycloak/%realm%`                                    |
+| `--spi-vault--secrets-provider--kv-version`           | KV secrets engine version (only `1` is supported).                        | `1`                                                   |
+| `--spi-vault--secrets-provider--ca-certificate-file`  | Path to CA certificate file for HTTPS connections. Optional.              | N/A                                                   |
+| `--spi-vault--secrets-provider--role`                 | Role to use for authentication.                                           | N/A                                                   |
+| `--spi-vault--secrets-provider--cache-name`           | Name of the Infinispan cache to use for storing secrets.                  | Caching is disabled                                   |
 
 The `%realm%` variable will be replaced with the actual realm name at runtime.
 
 #### Secrets Manager
 
-| Parameter                                                                  | Description                                                                                       | Default Value                                         |
-| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `--spi-admin-realm-restapi-extension-secrets-manager-address`              | Address (URL) of the OpenBao or HashiCorp Vault server for the secrets manager. Must be provided. | N/A                                                   |
-| `--spi-admin-realm-restapi-extension-secrets-manager-auth-method`          | Authentication method to use (only `kubernetes` is supported).                                    | `kubernetes`                                          |
-| `--spi-admin-realm-restapi-extension-secrets-manager-service-account-file` | Path to the Kubernetes service account token file for secrets manager authentication.             | `/var/run/secrets/kubernetes.io/serviceaccount/token` |
-| `--spi-admin-realm-restapi-extension-secrets-manager-kv-mount`             | KV secrets engine mount point.                                                                    | `secret`                                              |
-| `--spi-admin-realm-restapi-extension-secrets-manager-kv-path-prefix`       | Path prefix for secrets. Supports `%realm%` variable.                                             | `keycloak/%realm%`                                    |
-| `--spi-admin-realm-restapi-extension-secrets-manager-kv-version`           | KV secrets engine version (only `1` is supported).                                                | `1`                                                   |
-| `--spi-admin-realm-restapi-extension-secrets-manager-ca-certificate-file`  | Path to CA certificate file for HTTPS connections. Optional.                                      | N/A                                                   |
-| `--spi-admin-realm-restapi-extension-secrets-manager-role`                 | Role to use for authentication.                                                                   | N/A                                                   |
-| `--spi-admin-realm-restapi-extension-secrets-manager-cache-name`           | Name of the Infinispan cache to use for storing secrets.                                          | N/A (caching is disabled)                             |
+| Parameter                                                                    | Description                                                                                       | Default Value                                         |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `--spi-admin-realm-restapi-extension--secrets-manager--enabled`              | Enable or disable the secrets manager extension.                                                  | `true`                                                |
+| `--spi-admin-realm-restapi-extension--secrets-manager--address`              | Address (URL) of the OpenBao or HashiCorp Vault server for the secrets manager. Must be provided. | N/A                                                   |
+| `--spi-admin-realm-restapi-extension--secrets-manager--auth-method`          | Authentication method to use (only `kubernetes` is supported).                                    | `kubernetes`                                          |
+| `--spi-admin-realm-restapi-extension--secrets-manager--service-account-file` | Path to the Kubernetes service account token file for secrets manager authentication.             | `/var/run/secrets/kubernetes.io/serviceaccount/token` |
+| `--spi-admin-realm-restapi-extension--secrets-manager--kv-mount`             | KV secrets engine mount point.                                                                    | `secret`                                              |
+| `--spi-admin-realm-restapi-extension--secrets-manager--kv-path-prefix`       | Path prefix for secrets. Supports `%realm%` variable.                                             | `keycloak/%realm%`                                    |
+| `--spi-admin-realm-restapi-extension--secrets-manager--kv-version`           | KV secrets engine version (only `1` is supported).                                                | `1`                                                   |
+| `--spi-admin-realm-restapi-extension--secrets-manager--ca-certificate-file`  | Path to CA certificate file for HTTPS connections. Optional.                                      | N/A                                                   |
+| `--spi-admin-realm-restapi-extension--secrets-manager--role`                 | Role to use for authentication.                                                                   | N/A                                                   |
+| `--spi-admin-realm-restapi-extension--secrets-manager--cache-name`           | Name of the Infinispan cache to use for storing secrets.                                          | Caching is disabled)                                  |
 
 The `%realm%` variable will be replaced with the actual realm name at runtime.
 
@@ -74,9 +89,10 @@ If Vault secrets are read frequently, contacting OpenBao or HashiCorp Vault for 
 Enabling caching reduces requests and improves performance by keeping secrets in Keycloak's Infinispan cache.
 
 To enable caching:
+
 1. Define a cache in custom Infinispan configuration file.
 2. Point Keycloak to that file using the `--cache-config-file` parameter (or the corresponding environment variable/property).
-3. Set both `--spi-vault-secrets-provider-cache-name` and `--spi-admin-realm-restapi-extension-secrets-manager-cache-name` to the name of the Infinispan cache. Both parameters must use the same cache name for caching to work across the Vault provider and the Secrets Manager.
+3. Set both `--spi-vault--secrets-provider--cache-name` and `--spi-admin-realm-restapi-extension--secrets-manager--cache-name` to the name of the Infinispan cache. Both parameters must use the same cache name for caching to work across the Vault provider and the Secrets Manager.
 
 See Keycloak's [Configuring distributed caches](https://www.keycloak.org/server/caching) for more details on configuring caches.
 
@@ -94,6 +110,7 @@ Example Infinispan cache configuration:
 ```
 
 This will have the following cache behavior:
+
 - A replicated cache distributes entries across the Keycloak cluster while each node keeps its own copy.
 - The eviction policy is set for maximum of 1000 cached secrets. When the cache reaches this limit, the least recently used entries will be removed from the cache.
 - Cached secrets remain in memory as long as at least one Keycloak instance is alive.

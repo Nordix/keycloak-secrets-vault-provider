@@ -22,26 +22,20 @@ public class SecretsManagerProviderFactory implements AdminRealmResourceProvider
 
     private static Logger logger = Logger.getLogger(SecretsManagerProviderFactory.class);
     private static final String PROVIDER_ID = "secrets-manager";
-    private static final String CMD_LINE_OPTION_PREFIX = "--spi-admin-realm-restapi-extension-secrets-manager-";
+    private static final String CMD_LINE_OPTION_PREFIX = "--spi-admin-realm-restapi-extension--secrets-manager--";
 
     private ProviderConfig config;
-
-    @Override
-    public AdminRealmResourceProvider create(KeycloakSession session) {
-        logger.debug("Creating SecretManagerProvider");
-        return new SecretsManagerProvider(config);
-    }
 
     @Override
     public void init(Scope scopedConfig) {
         config = new ProviderConfig(scopedConfig, CMD_LINE_OPTION_PREFIX);
         logger.debugv("Initializing secrets-manager with {0}", config);
-        if (!config.getAuthMethod().equals("kubernetes")) {
-            throw new IllegalArgumentException("Only 'kubernetes' auth method is supported by the secrets-manager.");
-        }
-        if (config.getKvVersion() != 1) {
-            throw new IllegalArgumentException("Only KV version 1 is supported by the secrets-manager.");
-        }
+    }
+
+    @Override
+    public AdminRealmResourceProvider create(KeycloakSession session) {
+        logger.debug("Creating SecretManagerProvider");
+        return new SecretsManagerProvider(config);
     }
 
     @Override
