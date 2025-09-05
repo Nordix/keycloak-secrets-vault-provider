@@ -19,7 +19,7 @@ import io.github.nordix.keycloak.common.ProviderConfig;
 public class SecretsProviderFactory implements VaultProviderFactory {
 
     private static final String PROVIDER_ID = "secrets-provider";
-    private static final String CMD_LINE_OPTION_PREFIX = "--spi-vault-secrets-provider-";
+    private static final String CMD_LINE_OPTION_PREFIX = "--spi-vault--secrets-provider--";
     private static Logger logger = Logger.getLogger(SecretsProviderFactory.class);
 
     private ProviderConfig config;
@@ -28,13 +28,7 @@ public class SecretsProviderFactory implements VaultProviderFactory {
     @Override
     public void init(Scope scopedConfig) {
         config = new ProviderConfig(scopedConfig, CMD_LINE_OPTION_PREFIX);
-        logger.debugv("Initializing secrets-provider (Vault SPI) with {0}", this.config);
-        if (!config.getAuthMethod().equals("kubernetes")) {
-            throw new IllegalArgumentException("Only 'kubernetes' auth method is supported by the secrets-provider.");
-        }
-        if (config.getKvVersion() != 1) {
-            throw new IllegalArgumentException("Only KV version 1 is supported by the secrets-provider.");
-        }
+        logger.debugv("Initializing secrets-provider with {0}", config);
     }
 
 

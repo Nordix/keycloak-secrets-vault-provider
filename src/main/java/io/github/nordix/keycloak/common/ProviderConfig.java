@@ -64,9 +64,14 @@ public class ProviderConfig {
             }
         }
 
-        if (kvVersion < 1 || kvVersion > 2) {
-            logger.errorv("--spi-vault-secrets-provider-kv-version must be either 1 or 2. Was {0}", kvVersion);
-            throw new IllegalArgumentException("kv-version must be either 1 or 2. Was " + kvVersion);
+        if (!authMethod.equals("kubernetes")) {
+            logger.error(cmdLineOptionPrefix + "auth-method only 'kubernetes' is supported");
+            throw new IllegalArgumentException(cmdLineOptionPrefix + "auth-method only 'kubernetes' is supported");
+        }
+
+        if (kvVersion != 1) {
+            logger.error(cmdLineOptionPrefix + "kv-version only '1' is supported");
+            throw new IllegalArgumentException(cmdLineOptionPrefix + "kv-version only '1' is supported");
         }
     }
 
