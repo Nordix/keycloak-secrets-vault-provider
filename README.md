@@ -36,11 +36,8 @@ WARN  [org.keycloak.services] (build-47) KC-SERVICES0047: secrets-manager (io.gi
 WARN  [org.keycloak.services] (build-47) KC-SERVICES0047: secrets-provider (io.github.nordix.keycloak.services.vault.SecretsProviderFactory) is implementing the internal SPI vault. This SPI is internal and may change without notice
 ```
 
-Both the `vault` and `admin-realm-restapi-extension` SPIs are internal to Keycloak and may change without warning between releases.
-Currently, no stable public alternatives exist for this functionality.
-Users should be aware that future Keycloak updates could introduce breaking changes.
-Some additional internal Keycloak APIs, such as those used for caching, were also required to achieve full functionality.
+The `vault` and `admin-realm-restapi-extension` SPIs are internal to Keycloak and may change at any time. No stable public alternatives exist, so future Keycloak updates could break compatibility. Some internal Keycloak APIs (e.g. for caching) are also used.
 
 ## Contributing
 
-Please refer to the [Development Guide](docs/development.md) for instructions.
+Please refer to the [contribution guide](CONTRIBUTING.md).

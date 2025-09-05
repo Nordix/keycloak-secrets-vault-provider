@@ -1,4 +1,4 @@
-# Development Guide
+# Contributing
 
 This guide is for developers who wish to contribute to the project.
 

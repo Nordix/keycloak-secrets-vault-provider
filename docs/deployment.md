@@ -5,9 +5,9 @@
 This project is not available in Maven Central or any other public repository.
 It must be built and deployed manually.
 
-To deploy the Keycloak Vault Provider SPI extension, follow these steps:
+To deploy the Vault SPI Secrets Provider and Secrets Manager REST API extension, follow these steps:
 
-1. Compile the Extension
+1. Compile the extensions
 
    Ensure you have JDK and Git installed. Clone the repository and build the project:
 
@@ -35,7 +35,7 @@ The following table gives an example of the change:
 | `--spi-vault-provider`                 | `--spi-vault--provider`                  |
 | `--spi-vault-secrets-provider-address` | `--spi-vault--secrets-provider--address` |
 
-For further details, refer to Keycloak's [Configuring providers](https://www.keycloak.org/server/configuration-provider) documentation and the chapter "Deprecated features" in Keycloak's [Migrating to 26.3.0](https://www.keycloak.org/docs/latest/upgrading/index.html#migrating-to-26-3-0) for more information on the change.
+For further details, refer to Keycloak's [Configuring providers](https://www.keycloak.org/server/configuration-provider) documentation and the chapter "Deprecated features" in Keycloak's [Migrating to 26.3.0](https://www.keycloak.org/docs/latest/upgrading/index.html#migrating-to-26-3-0).
 
 ### Enable Vault Provider (Mandatory)
 
@@ -79,7 +79,7 @@ The `%realm%` variable will be replaced with the actual realm name at runtime.
 | `--spi-admin-realm-restapi-extension--secrets-manager--kv-version`           | KV secrets engine version (only `1` is supported).                                                | `1`                                                   |
 | `--spi-admin-realm-restapi-extension--secrets-manager--ca-certificate-file`  | Path to CA certificate file for HTTPS connections. Optional.                                      | N/A                                                   |
 | `--spi-admin-realm-restapi-extension--secrets-manager--role`                 | Role to use for authentication.                                                                   | N/A                                                   |
-| `--spi-admin-realm-restapi-extension--secrets-manager--cache-name`           | Name of the Infinispan cache to use for storing secrets.                                          | Caching is disabled)                                  |
+| `--spi-admin-realm-restapi-extension--secrets-manager--cache-name`           | Name of the Infinispan cache to use for storing secrets.                                          | Caching is disabled                                   |
 
 The `%realm%` variable will be replaced with the actual realm name at runtime.
 

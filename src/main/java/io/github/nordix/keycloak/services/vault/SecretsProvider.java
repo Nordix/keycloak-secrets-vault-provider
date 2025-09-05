@@ -83,7 +83,7 @@ public class SecretsProvider implements VaultProvider {
      * The cache key is the full path to the KV secrets engine and the value is the secret itself.
      *
      * @param vaultSecretId the identifier of the secret in the format
-     *                      {@code [path/to/secret].[field]}, with optional
+     *                      {@code [path/to/secret]:[field]}, with optional
      *                      {@code %realm%} token
      * @return a {@link VaultRawSecret} containing the secret value as a byte buffer
      * @throws IOException              if an I/O error occurs during Vault
