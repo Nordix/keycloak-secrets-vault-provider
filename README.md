@@ -25,6 +25,20 @@ For more information, see:
 - [Deployment Guide](docs/deployment.md)
 - [Secrets Manager REST API Documentation](docs/api.md)
 
+## Known Issues
+
+### Extension is using Keycloak internal SPIs
+
+When the extension is loaded, Keycloak displays the following warnings during startup:
+
+```
+WARN  [org.keycloak.services] (build-47) KC-SERVICES0047: secrets-manager (io.github.nordix.keycloak.services.secretsmanager.SecretsManagerProviderFactory) is implementing the internal SPI admin-realm-restapi-extension. This SPI is internal and may change without notice
+WARN  [org.keycloak.services] (build-47) KC-SERVICES0047: secrets-provider (io.github.nordix.keycloak.services.vault.SecretsProviderFactory) is implementing the internal SPI vault. This SPI is internal and may change without notice
+```
+
+Both the `vault` and `admin-realm-restapi-extension` SPIs are internal to Keycloak and may change at any time between releases.
+Currently, there is no stable public alternative for this functionality, so users should be aware that future Keycloak updates may introduce breaking changes.
+
 ## Contributing
 
 Please refer to the [Development Guide](docs/development.md) for instructions.
