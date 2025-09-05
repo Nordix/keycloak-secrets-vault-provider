@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.security.GeneralSecurityException;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -93,6 +94,18 @@ public class RestClient {
         return sendRequest(endpoint, method, bodyString);
     }
 
+    public HttpResponse<JsonNode> sendRequest(String endpoint, String method, List<Map<String, Object>> body) {
+        String bodyString = null;
+        if (body != null) {
+            try {
+                bodyString = OBJECT_MAPPER.writeValueAsString(body);
+            } catch (IOException e) {
+                throw new RestClientException("Failed to serialize body to JSON", e);
+            }
+        }
+        return sendRequest(endpoint, method, bodyString);
+    }
+
     public HttpResponse<JsonNode> sendRequest(String endpoint, String method) {
         return sendRequest(endpoint, method, (String) null);
     }
@@ -128,8 +141,14 @@ public class RestClient {
         return response.statusCode() / 100 == 2;
     }
 
+    public static boolean isErrorResponse(HttpResponse<?> response) {
+        return response.statusCode() / 100 == 4 || response.statusCode() / 100 == 5;
+    }
+
     private HttpClient getHttpClient() {
         Builder clientBuilder = HttpClient.newBuilder();
+
+        clientBuilder.followRedirects(HttpClient.Redirect.NORMAL);
 
         if (caCertificateFile != null) {
             try {
