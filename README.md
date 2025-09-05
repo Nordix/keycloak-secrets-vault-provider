@@ -40,4 +40,4 @@ The `vault` and `admin-realm-restapi-extension` SPIs are internal to Keycloak an
 
 ## Contributing
 
-Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md).
+Please refer to [CONTRIBUTING.md](CONTRIBUTING.md).
