@@ -218,26 +218,6 @@
           </execution>
         </executions>
       </plugin>
-      <!-- Jacoco coverage report -->
-      <plugin>
-        <groupId>org.jacoco</groupId>
-        <artifactId>jacoco-maven-plugin</artifactId>
-        <version>${version.maven.jacoco.plugin}</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>prepare-agent</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>report</id>
-            <phase>test</phase>
-            <goals>
-              <goal>report</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
       <!-- Generate OpenAPI description -->
       <!-- config example from https://github.com/smallrye/smallrye-open-api/discussions/1353 -->
       <plugin>
