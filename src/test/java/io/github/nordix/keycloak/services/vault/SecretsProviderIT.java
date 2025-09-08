@@ -149,7 +149,7 @@ class SecretsProviderIT {
         Assertions.assertEquals(AuthenticationResult.SUCCESS, result,
                 "Expected successful login when updated vault secret reference is used");
 
-        // Two reads from OpenBao: one from Keycloak 0 and one from Keycloak 1 after the update.
+        // Check that there was two reads from OpenBao: one from Keycloak 0 and one from Keycloak 1 after the update.
         metrics.assertCounterIncrementedBy("vault_route_read_secretv1__count", 2);
     }
 
