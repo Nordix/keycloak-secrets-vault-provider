@@ -57,9 +57,7 @@ The access information for test environments is as follows:
 
   Admin credentials: `admin` / `admin`
 
-- Federated realm login: http://127.0.0.127:8080/realms/first/account/
-
-  User in "second" realm: `joe` / `joe`
+- Identity brokering has been pre-configured to Keycloak deployment for interactive testing. You can access the federated login at realm `first`: http://127.0.0.127:8080/realms/first/account/ and log in as user in `second` realm with credentials `joe` / `joe`
 
 
 
