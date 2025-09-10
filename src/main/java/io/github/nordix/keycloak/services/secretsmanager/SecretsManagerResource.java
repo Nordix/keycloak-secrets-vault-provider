@@ -64,7 +64,7 @@ public class SecretsManagerResource {
     /**
      * Regular expression for validating secret IDs.
      */
-    private static final String SECRET_ID_REGEX = "^[a-zA-Z0-9_\\.-]+$";
+    private static final String SECRET_ID_REGEX = "^[a-zA-Z0-9_.-]+$";
 
     private final RealmModel realm;
     private final AdminPermissionEvaluator auth;
@@ -270,13 +270,15 @@ public class SecretsManagerResource {
             return;
         }
 
-        logger.debugv("Evicting secret cache for path {0}", fullPath);
+        String cacheKey = fullPath + ":" + SECRET_FIELD_NAME;
+
+        logger.debugv("Evicting secret cache (key: {0})", cacheKey);
         session.getProvider(InfinispanConnectionProvider.class)
-                .getCache(providerConfig.getCacheName()).remove(fullPath);
+                .getCache(providerConfig.getCacheName()).remove(cacheKey);
     }
 
     private static String createRandomSecretValue() {
-        var random = new SecureRandom();
+        SecureRandom random = new SecureRandom();
         return random.ints(60, 0, SECRET_CHARS.length())
                 .mapToObj(SECRET_CHARS::charAt)
                 .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)

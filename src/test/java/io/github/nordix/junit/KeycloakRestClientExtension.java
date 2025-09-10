@@ -96,7 +96,7 @@ public class KeycloakRestClientExtension extends RestClient implements BeforeEac
         logger.infov("Waiting for Keycloak to be ready (max {0} times)", maxNotReady);
         while (true) {
             try {
-                var resp = this.sendRequest("/realms/master", "GET");
+                HttpResponse<JsonNode> resp = this.sendRequest("/realms/master", "GET");
                 if (isSuccessfulResponse(resp)) {
                     break;
                 }

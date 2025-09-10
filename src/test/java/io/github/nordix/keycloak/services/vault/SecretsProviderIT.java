@@ -108,6 +108,41 @@ class SecretsProviderIT {
     }
 
     @Test
+    void testInvalidFormat() {
+        consumerRealm.setIdentityBrokeringConfig("${vault.foo/bar}");
+        AuthenticationResult result = performBrowserLogin(USER_LOGIN, USER_PASSWORD);
+        // NOTE:
+        //
+        // The detailed error cannot be asserted here via the browser but the logs should contain:
+        //
+        //    Invalid secret ID: foo/bar. Must match regex ^[a-zA-Z0-9_.:-]+$
+        //
+        Assertions.assertEquals(AuthenticationResult.UNEXPECTED_ERROR, result,
+                "Expected invalid vault reference error when invalid format is used");
+    }
+
+    @Test
+    void testFieldReference() {
+        consumerRealm.storeSecret("idp.federator", PROVIDER_CLIENT_SECRET);
+        consumerRealm.setIdentityBrokeringConfig("${vault.idp.federator:secret}");
+
+        AuthenticationResult result = performBrowserLogin(USER_LOGIN, USER_PASSWORD);
+        Assertions.assertEquals(AuthenticationResult.SUCCESS, result,
+                "Expected successful login when valid vault secret field reference is used");
+    }
+
+
+    @Test
+    void testInvalidFieldReference() {
+        consumerRealm.storeSecret("idp.federator", PROVIDER_CLIENT_SECRET);
+        consumerRealm.setIdentityBrokeringConfig("${vault.idp.federator:invalid}");
+
+        AuthenticationResult result = performBrowserLogin(USER_LOGIN, USER_PASSWORD);
+        Assertions.assertEquals(AuthenticationResult.UNEXPECTED_ERROR, result,
+                "Expected invalid vault reference error when non-existent field is referenced");
+    }
+
+    @Test
     void testSecretCacheDistributedHit() {
         consumerRealm.storeSecret("idp.federator", PROVIDER_CLIENT_SECRET);
         consumerRealm.setIdentityBrokeringConfig("${vault.idp.federator}");
@@ -152,7 +187,6 @@ class SecretsProviderIT {
         // Check that there was two reads from OpenBao: one from Keycloak 0 and one from Keycloak 1 after the update.
         metrics.assertCounterIncrementedBy("vault_route_read_secretv1__count", 2);
     }
-
 
     /**
      * Test case for verifying secret cache expiry.

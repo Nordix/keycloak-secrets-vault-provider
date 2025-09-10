@@ -67,6 +67,33 @@ Keycloak would automatically manage the secure storage of sensitive configuratio
 
 Finally, when secrets are stored externally, Keycloak configuration is distributed across two databases, which can complicate backups and upgrades/rollbacks.
 
+#### Secret ID Format
+
+This project enforces a format for secret IDs in `${vault.<id>}` references.
+
+* The `<id>` identifies the secret name in OpenBao or HashiCorp Vault.
+* You can optionally specify a key (field) within the secret by appending it after a colon.
+* The `<id>` must conform to the following regular expression `^[a-zA-Z0-9_.:-]+$`.
+
+Examples:
+
+* `${vault.my-secret}` retrieves the value of the default key `secret` from the secret named `my-secret`.
+* `${vault.my-secret:my-key}` retrieves the value of the key `my-key` from the secret named `my-secret`.
+
+To fetch the secret for `${vault.my-secret:my-key}` the provider makes a request to the following URL:
+
+```
+<address>/<kv-mount>/<kv-path-prefix>/my-secret
+```
+
+where `<address>`, `<kv-mount>`, and `<kv-path-prefix>` are defined in the deployment configuration.
+The provider then extracts the requested key `my-key` from the response and passes it back to Keycloak.
+
+By default, the Secrets Manager REST API creates secrets with a key named `secret`. If no key is specified in the `${vault.<id>}` reference, the Vault SPI provider automatically retrieves the value of this default key.
+
+
+For guidance on naming secrets, see [Secrets Manager API documentation](api.md#naming-convention-for-secrets).
+
 ## Secrets Manager REST API Extension
 
 This project extends Keycloak with a custom REST API extension that allows managing secrets via Keycloak's Admin REST API.
@@ -100,6 +127,11 @@ Secrets are automatically restricted to the specific Keycloak realm in which the
 A secret named `ldap-bindpw` created in `my-realm` is not the same as `ldap-bindpw` in `your-realm`.
 
 Secrets Manager is accessible only via the REST API and a user interface within Keycloak Admin Console is not available.
+
+### KV Storage Layout
+
+Each secret is stored in OpenBao or HashiCorp Vault as a key-value map containing only a single entry with the key `secret` and value being the actual secret value.
+
 
 ## Caching of Secrets
 

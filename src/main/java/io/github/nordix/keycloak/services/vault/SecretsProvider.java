@@ -29,6 +29,12 @@ public class SecretsProvider implements VaultProvider {
 
     private static Logger logger = Logger.getLogger(SecretsProvider.class);
 
+    /**
+     * Regular expression for validating secret IDs.
+     *
+     */
+    private static final String SECRET_ID_REGEX = "^[a-zA-Z0-9_.:-]+$";
+
     private final String realm;
     private final ProviderConfig config;
     private String pathPrefix;
@@ -74,7 +80,6 @@ public class SecretsProvider implements VaultProvider {
      * </pre>
      *
      * If the field is not specified, it defaults to {@code secret}.
-     * The special token {@code %realm%} in the {@code vaultSecretId} will be replaced with the current realm.
      * The prefix for the path is derived from the configuration's K/V path prefix, which is also replaced
      * with the current realm.
      *
@@ -92,8 +97,11 @@ public class SecretsProvider implements VaultProvider {
      * @throws RuntimeException         if the secret value is empty or cannot be
      *                                  retrieved
      */
+    @SuppressWarnings("java:S3824") // Suppress sonarqube warning for replacing Map.get() with Map.computeIfAbsent()
     private VaultRawSecret obtainSecretInternal(String vaultSecretId) throws IOException {
-        final String pathSuffix = vaultSecretId.replace("%realm%", realm);
+        validateSecretIdFormat(vaultSecretId);
+
+        final String pathSuffix = vaultSecretId;
         final String fieldName;
         final String fullPath;
 
@@ -105,6 +113,9 @@ public class SecretsProvider implements VaultProvider {
             fullPath = pathPrefix + "/" + pathSuffix;
             fieldName = "secret";
         }
+
+        // The Infinispan cache key is combination of fullPath and fieldName to support multiple fields.
+        final String cacheKey = fullPath + ":" + fieldName;
 
         logger.debugv("vaultSecretId={0} resolved to path={1} field={2} {3}", vaultSecretId, fullPath, fieldName,
                 secretsCache != null ? "using cache" : "not using cache");
@@ -128,10 +139,13 @@ public class SecretsProvider implements VaultProvider {
             // different versions of the class?
             //
             // For having well understood behavior, just we use simple get/put intead.
-            secretValue = secretsCache.get(fullPath);
+            secretValue = secretsCache.get(cacheKey);
             if (secretValue == null) {
                 secretValue = fetchSecretFromServer(fullPath, fieldName);
-                secretsCache.put(fullPath, secretValue);
+                logger.debugv("Caching secret (key: {0})", cacheKey);
+                secretsCache.put(cacheKey, secretValue);
+            } else {
+                logger.debugv("Secret cache hit (key: {0})", cacheKey);
             }
         } else {
             secretValue = fetchSecretFromServer(fullPath, fieldName);
@@ -168,6 +182,13 @@ public class SecretsProvider implements VaultProvider {
     @Override
     public void close() {
         // Intentionally left empty.
+    }
+
+    private void validateSecretIdFormat(String id) {
+        if (!id.matches(SECRET_ID_REGEX)) {
+            logger.warnv("Invalid secret ID: {0}. Must match regex {1}", id, SECRET_ID_REGEX);
+            throw new RuntimeException("Invalid secret ID format. Must match regex " + SECRET_ID_REGEX);
+        }
     }
 
 }
