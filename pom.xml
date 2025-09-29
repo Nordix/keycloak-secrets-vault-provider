@@ -15,7 +15,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>17</maven.compiler.release>
 
-    <version.keycloak>26.3.4</version.keycloak>
+    <version.keycloak>26.3.5</version.keycloak>
     <version.junit.jupiter>5.13.4</version.junit.jupiter>
     <version.jboss.logmanager>3.1.2.Final</version.jboss.logmanager>
     <version.jboss.logging>3.6.1.Final</version.jboss.logging>
