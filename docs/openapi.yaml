@@ -17,6 +17,7 @@ components:
       type: object
       required:
       - id
+      - vault_id
       - secret
       properties:
         id:
@@ -26,7 +27,7 @@ components:
           - secret-id-1
         vault_id:
           type: string
-          description: The Keycloak Vault ID format for this secret.
+          description: The Keycloak Vault ID for this secret.
           examples:
           - "${vault.secret-id-1}"
         secret:
