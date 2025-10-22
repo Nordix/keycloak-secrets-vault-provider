@@ -17,7 +17,7 @@
       },
       "SecretResponse" : {
         "type" : "object",
-        "required" : [ "id", "secret" ],
+        "required" : [ "id", "vault_id", "secret" ],
         "properties" : {
           "id" : {
             "type" : "string",
@@ -26,7 +26,7 @@
           },
           "vault_id" : {
             "type" : "string",
-            "description" : "The Keycloak Vault ID format for this secret.",
+            "description" : "The Keycloak Vault ID for this secret.",
             "examples" : [ "${vault.secret-id-1}" ]
           },
           "secret" : {

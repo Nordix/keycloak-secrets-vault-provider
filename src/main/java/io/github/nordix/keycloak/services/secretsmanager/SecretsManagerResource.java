@@ -333,8 +333,8 @@ public class SecretsManagerResource {
         private String id;
 
         @JsonProperty(value = "vault_id")
-        @Parameter(description = "The Keycloak Vault ID format for this secret")
-        @Schema(description = "The Keycloak Vault ID format for this secret.", examples = { "${vault.secret-id-1}" })
+        @Parameter(description = "The Keycloak Vault ID for this secret")
+        @Schema(description = "The Keycloak Vault ID for this secret.", required = true, examples = { "${vault.secret-id-1}" })
         private String vaultId;
 
         @Parameter(description = "The secret value")
