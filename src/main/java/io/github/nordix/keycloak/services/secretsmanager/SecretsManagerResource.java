@@ -191,7 +191,6 @@ public class SecretsManagerResource {
     @Path("{id}")
     @Operation(summary = "Delete a secret", description = "Deletes a secret by its ID.")
     @APIResponse(responseCode = "204", description = "Secret deleted successfully")
-    @APIResponse(responseCode = "404", description = "Secret not found")
     @APIResponse(responseCode = "400", description = "Bad request, e.g., invalid ID format")
     @APIResponse(responseCode = "500", description = "Internal server error")
     public Response deleteSecret(
@@ -210,12 +209,8 @@ public class SecretsManagerResource {
             evictSecretCache(fullPath);
             return Response.noContent().build();
         } catch (BaoClient.BaoClientException e) {
-            if (e.getStatusCode() == 404) {
-                throw ErrorResponse.error("Secret not found", Response.Status.NOT_FOUND);
-            } else {
-                logger.errorv(e, "Error deleting secret {0} for realm {1}", id, realm.getName());
-                throw ErrorResponse.error("Error deleting secret", Response.Status.INTERNAL_SERVER_ERROR);
-            }
+            logger.errorv(e, "Error deleting secret {0} for realm {1}", id, realm.getName());
+            throw ErrorResponse.error("Error deleting secret", Response.Status.INTERNAL_SERVER_ERROR);
         }
     }
 

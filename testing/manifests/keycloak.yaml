@@ -70,6 +70,8 @@ spec:
               mkdir -p /opt/keycloak/data/import
               cp /host/testing/configs/keycloak-realms/* /opt/keycloak/data/import/
               cp /host/testing/configs/custom-cache-ispn.xml /opt/keycloak/conf/custom-cache-ispn.xml
+              # For capturing traffic with Wireshark, TLS to OpenBao can be disabled by:
+              # modifying all "nnn--address" parameters from https://openbao:18200 to http://openbao:8200
               /opt/keycloak/bin/kc.sh start \
                 --import-realm \
                 --spi-vault--provider=secrets-provider \

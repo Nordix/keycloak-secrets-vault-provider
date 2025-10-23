@@ -140,8 +140,6 @@ paths:
       responses:
         "204":
           description: Secret deleted successfully
-        "404":
-          description: Secret not found
         "400":
           description: "Bad request, e.g., invalid ID format"
         "500":

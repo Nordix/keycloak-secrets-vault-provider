@@ -234,6 +234,12 @@ class SecretsManagerIT {
                 .sendRequest(API_PATH + "/" + nonExistentId, "GET");
 
         Assertions.assertEquals(404, getResp.statusCode());
+
+        // Try to delete non-existent secret.
+        // Since DELETE is idempotent, deleting a non-existent secret should still return 204 No Content.
+        HttpResponse<JsonNode> deleteResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + nonExistentId, "DELETE");
+        Assertions.assertEquals(204, deleteResp.statusCode());
     }
 
     @Test
