@@ -1,6 +1,6 @@
 # Contributing
 
-This guide is for developers who wish to contribute to the project.
+This guide is for those who wish to contribute to the project.
 
 ## Building the Project
 
