@@ -114,7 +114,7 @@ public class SecretsManagerResource {
     @APIResponse(responseCode = "400", description = "Bad request, e.g., invalid ID format")
     @APIResponse(responseCode = "500", description = "Internal server error")
     public Response getSecret(
-            @Parameter(description = "ID of the secret to retrieve. Must match the regex " + SECRET_ID_REGEX
+            @Parameter(description = "The ID of the secret to retrieve. Must match regular expression " + SECRET_ID_REGEX
                     + " and must exist.", required = true) @PathParam("id") String id) {
 
         authorizeRequest();
@@ -153,8 +153,8 @@ public class SecretsManagerResource {
     @APIResponse(responseCode = "400", description = "Bad request, e.g., invalid ID format")
     @APIResponse(responseCode = "500", description = "Internal server error")
     public Response updateSecret(
-            @Parameter(description = "ID of the secret to update. Must match the regex " + SECRET_ID_REGEX
-                    + " and must exist.", required = true) @PathParam("id") String id,
+            @Parameter(description = "The ID of the secret to update. Must match regular expression " + SECRET_ID_REGEX
+                    + ".", required = true) @PathParam("id") String id,
             @RequestBody(description = "Optional secret data. If not provided, a random secret will be generated.", required = false) SecretRequest secretRequest) {
 
 
@@ -194,8 +194,8 @@ public class SecretsManagerResource {
     @APIResponse(responseCode = "400", description = "Bad request, e.g., invalid ID format")
     @APIResponse(responseCode = "500", description = "Internal server error")
     public Response deleteSecret(
-            @Parameter(description = "ID of the secret to delete. Must match the regex " + SECRET_ID_REGEX
-                    + " and must exist.", required = true) @PathParam("id") String id) {
+            @Parameter(description = "ID of the secret to delete. Must match the regular expression " + SECRET_ID_REGEX
+                    + ".", required = true) @PathParam("id") String id) {
 
         authorizeRequest();
 

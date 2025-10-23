@@ -72,8 +72,8 @@ paths:
       tags:
       - Secrets Manager
       parameters:
-      - description: "ID of the secret to update. Must match the regex ^[a-zA-Z0-9_.-]+$\
-          \ and must exist."
+      - description: "The ID of the secret to update. Must match regular expression\
+          \ ^[a-zA-Z0-9_.-]+$."
         required: true
         name: id
         in: path
@@ -104,8 +104,8 @@ paths:
       tags:
       - Secrets Manager
       parameters:
-      - description: "ID of the secret to retrieve. Must match the regex ^[a-zA-Z0-9_.-]+$\
-          \ and must exist."
+      - description: "The ID of the secret to retrieve. Must match regular expression\
+          \ ^[a-zA-Z0-9_.-]+$ and must exist."
         required: true
         name: id
         in: path
@@ -130,8 +130,8 @@ paths:
       tags:
       - Secrets Manager
       parameters:
-      - description: "ID of the secret to delete. Must match the regex ^[a-zA-Z0-9_.-]+$\
-          \ and must exist."
+      - description: "ID of the secret to delete. Must match the regular expression\
+          \ ^[a-zA-Z0-9_.-]+$."
         required: true
         name: id
         in: path

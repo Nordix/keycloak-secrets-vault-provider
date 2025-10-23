@@ -81,7 +81,7 @@
         "description" : "Creates a new secret or updates an existing secret. If a secret value is not provided in the request body, a random secret will be generated.",
         "tags" : [ "Secrets Manager" ],
         "parameters" : [ {
-          "description" : "ID of the secret to update. Must match the regex ^[a-zA-Z0-9_.-]+$ and must exist.",
+          "description" : "The ID of the secret to update. Must match regular expression ^[a-zA-Z0-9_.-]+$.",
           "required" : true,
           "name" : "id",
           "in" : "path",
@@ -124,7 +124,7 @@
         "description" : "Retrieves a secret by its ID.",
         "tags" : [ "Secrets Manager" ],
         "parameters" : [ {
-          "description" : "ID of the secret to retrieve. Must match the regex ^[a-zA-Z0-9_.-]+$ and must exist.",
+          "description" : "The ID of the secret to retrieve. Must match regular expression ^[a-zA-Z0-9_.-]+$ and must exist.",
           "required" : true,
           "name" : "id",
           "in" : "path",
@@ -159,7 +159,7 @@
         "description" : "Deletes a secret by its ID.",
         "tags" : [ "Secrets Manager" ],
         "parameters" : [ {
-          "description" : "ID of the secret to delete. Must match the regex ^[a-zA-Z0-9_.-]+$ and must exist.",
+          "description" : "ID of the secret to delete. Must match the regular expression ^[a-zA-Z0-9_.-]+$.",
           "required" : true,
           "name" : "id",
           "in" : "path",
