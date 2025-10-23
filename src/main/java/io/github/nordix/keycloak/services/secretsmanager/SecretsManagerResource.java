@@ -194,7 +194,7 @@ public class SecretsManagerResource {
     @APIResponse(responseCode = "400", description = "Bad request, e.g., invalid ID format")
     @APIResponse(responseCode = "500", description = "Internal server error")
     public Response deleteSecret(
-            @Parameter(description = "ID of the secret to delete. Must match the regular expression " + SECRET_ID_REGEX
+            @Parameter(description = "The ID of the secret to delete. Must match the regular expression " + SECRET_ID_REGEX
                     + ".", required = true) @PathParam("id") String id) {
 
         authorizeRequest();

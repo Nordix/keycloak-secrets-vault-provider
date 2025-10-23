@@ -159,7 +159,7 @@
         "description" : "Deletes a secret by its ID.",
         "tags" : [ "Secrets Manager" ],
         "parameters" : [ {
-          "description" : "ID of the secret to delete. Must match the regular expression ^[a-zA-Z0-9_.-]+$.",
+          "description" : "The ID of the secret to delete. Must match the regular expression ^[a-zA-Z0-9_.-]+$.",
           "required" : true,
           "name" : "id",
           "in" : "path",
