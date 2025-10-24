@@ -77,14 +77,14 @@ spec:
                 --spi-vault--provider=secrets-provider \
                 --spi-vault--secrets-provider--address=https://openbao:18200 \
                 --spi-vault--secrets-provider--ca-certificate-file=/host/testing/certs/ca.pem \
-                --spi-vault--secrets-provider--kv-mount=secretv1 \
+                --spi-vault--secrets-provider--kv-mount=secret \
                 --spi-vault--secrets-provider--kv-path-prefix="keycloak/%realm%" \
                 --spi-vault--secrets-provider--kv-version=1 \
                 --spi-vault--secrets-provider--role=keycloak-reader \
                 --spi-vault--secrets-provider--cache-name=vaultExtensionSecrets \
                 --spi-admin-realm-restapi-extension--secrets-manager--address=https://openbao:18200 \
                 --spi-admin-realm-restapi-extension--secrets-manager--ca-certificate-file=/host/testing/certs/ca.pem \
-                --spi-admin-realm-restapi-extension--secrets-manager--kv-mount=secretv1 \
+                --spi-admin-realm-restapi-extension--secrets-manager--kv-mount=secret \
                 --spi-admin-realm-restapi-extension--secrets-manager--kv-path-prefix="keycloak/%realm%" \
                 --spi-admin-realm-restapi-extension--secrets-manager--kv-version=1 \
                 --spi-admin-realm-restapi-extension--secrets-manager--role=keycloak-admin \
