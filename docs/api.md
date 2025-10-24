@@ -15,13 +15,14 @@ The Secrets Manager Admin API supports the following operations:
 
 Secrets are stored externally in OpenBao or HashiCorp Vault and referenced in Keycloak configuration using the `${vault.<id>}` syntax.
 The Vault Secrets Provider implemented in this project retrieves the actual secret value when needed.
+The use of `${vault.<id>}` references is optional and the realm administrator can choose to continue storing secrets in cleartext on case by case basis if desired.
 See the [Overview](overview.md) for more information, including the list of Vault SPI use cases supported by Keycloak.
 
 ### API Documentation
 
 For detailed API documentation, including request and response schemas, see
 
-- [API documentation](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/Nordix/keycloak-secrets-vault-provider/refs/heads/main/docs/openapi.json), rendered by Swagger "Petstore".
+- [API documentation](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/Nordix/keycloak-secrets-vault-provider/refs/heads/main/docs/openapi.json) (rendering courtesy of petstore.swagger.io).
 
 ## Access Control and Realm Isolation
 
@@ -149,4 +150,3 @@ There is no need to modify the LDAP federation configuration itself, as the refe
    ```
 
 Similar to the previous example, steps (1) and (2) can be performed in any order.
-The LDAP federation configuration will stop working until the secret is deleted from the Secrets Manager.
