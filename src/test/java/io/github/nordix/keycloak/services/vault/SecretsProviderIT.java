@@ -160,7 +160,7 @@ class SecretsProviderIT {
                 "Expected successful login when valid vault secret reference is used");
 
         // Check that the secret was only fetched once by Keycloak 0 and Keycloak 1 accessed it from the cache.
-        metrics.assertCounterIncrementedBy("vault_route_read_secretv1__count", 1);
+        metrics.assertCounterIncrementedBy("vault_route_read_secret__count", 1);
     }
 
     @Test
@@ -185,7 +185,7 @@ class SecretsProviderIT {
                 "Expected successful login when updated vault secret reference is used");
 
         // Check that there was two reads from OpenBao: one from Keycloak 0 and one from Keycloak 1 after the update.
-        metrics.assertCounterIncrementedBy("vault_route_read_secretv1__count", 2);
+        metrics.assertCounterIncrementedBy("vault_route_read_secret__count", 2);
     }
 
     /**
@@ -224,7 +224,7 @@ class SecretsProviderIT {
                 "Expected successful login when valid vault secret reference is used");
 
         // Check that the secret was fetched 2 times (2 cache misses).
-        metrics.assertCounterIncrementedBy("vault_route_read_secretv1__count", 2);
+        metrics.assertCounterIncrementedBy("vault_route_read_secret__count", 2);
     }
 
     AuthenticationResult performBrowserLogin(String username, String password) {

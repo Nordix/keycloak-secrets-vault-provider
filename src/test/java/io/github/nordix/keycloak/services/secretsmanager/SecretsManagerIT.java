@@ -68,8 +68,8 @@ class SecretsManagerIT {
         Assertions.assertEquals(secretValue, getResp.body().get("secret").asText());
         Assertions.assertEquals(vaultId, getResp.body().get("vault_id").asText());
 
-        metrics.assertCounterIncrementedBy("vault_route_create_secretv1__count", 1);
-        metrics.assertCounterIncrementedBy("vault_route_read_secretv1__count", 1);
+        metrics.assertCounterIncrementedBy("vault_route_create_secret__count", 1);
+        metrics.assertCounterIncrementedBy("vault_route_read_secret__count", 1);
     }
 
     @Test
@@ -106,7 +106,7 @@ class SecretsManagerIT {
         Assertions.assertEquals(60, createResp2.body().get("secret").asText().length());
         Assertions.assertEquals(secretId2, createResp2.body().get("id").asText());
 
-        metrics.assertCounterIncrementedBy("vault_route_create_secretv1__count", 2);
+        metrics.assertCounterIncrementedBy("vault_route_create_secret__count", 2);
     }
 
     @Test
@@ -138,8 +138,8 @@ class SecretsManagerIT {
         Assertions.assertTrue(RestClient.isSuccessfulResponse(getResp), "Failed to read secret: " + getResp.body());
         Assertions.assertEquals(updatedValue, getResp.body().get("secret").asText());
 
-        metrics.assertCounterIncrementedBy("vault_route_create_secretv1__count", 1);
-        metrics.assertCounterIncrementedBy("vault_route_update_secretv1__count", 1);
+        metrics.assertCounterIncrementedBy("vault_route_create_secret__count", 1);
+        metrics.assertCounterIncrementedBy("vault_route_update_secret__count", 1);
     }
 
     @Test
@@ -166,8 +166,8 @@ class SecretsManagerIT {
         // Verify that the updated value is not the same as the initial value.
         Assertions.assertNotEquals(initialRandomValue, newRandomValue);
 
-        metrics.assertCounterIncrementedBy("vault_route_create_secretv1__count", 1);
-        metrics.assertCounterIncrementedBy("vault_route_update_secretv1__count", 1);
+        metrics.assertCounterIncrementedBy("vault_route_create_secret__count", 1);
+        metrics.assertCounterIncrementedBy("vault_route_update_secret__count", 1);
     }
 
     @Test
@@ -193,7 +193,7 @@ class SecretsManagerIT {
 
         Assertions.assertEquals(404, getResp.statusCode());
 
-        metrics.assertCounterIncrementedBy("vault_route_delete_secretv1__count", 1);
+        metrics.assertCounterIncrementedBy("vault_route_delete_secret__count", 1);
 
     }
 
@@ -222,7 +222,7 @@ class SecretsManagerIT {
         Assertions.assertTrue(ids.contains(secretId1));
         Assertions.assertTrue(ids.contains(secretId2));
 
-        metrics.assertCounterIncrementedBy("vault_route_list_secretv1__count", 1);
+        metrics.assertCounterIncrementedBy("vault_route_list_secret__count", 1);
     }
 
     @Test
@@ -308,11 +308,11 @@ class SecretsManagerIT {
             Assertions.assertEquals(403, listResp.statusCode());
 
             // Check that no requests were made to OpenBao.
-            metrics.assertCounterIncrementedBy("vault_route_create_secretv1__count", 0);
-            metrics.assertCounterIncrementedBy("vault_route_update_secretv1__count", 0);
-            metrics.assertCounterIncrementedBy("vault_route_read_secretv1__count", 0);
-            metrics.assertCounterIncrementedBy("vault_route_list_secretv1__count", 0);
-            metrics.assertCounterIncrementedBy("vault_route_delete_secretv1__count", 0);
+            metrics.assertCounterIncrementedBy("vault_route_create_secret__count", 0);
+            metrics.assertCounterIncrementedBy("vault_route_update_secret__count", 0);
+            metrics.assertCounterIncrementedBy("vault_route_read_secret__count", 0);
+            metrics.assertCounterIncrementedBy("vault_route_list_secret__count", 0);
+            metrics.assertCounterIncrementedBy("vault_route_delete_secret__count", 0);
 
         } finally {
             keycloakAdminClient.deleteRealm("unauthorized");

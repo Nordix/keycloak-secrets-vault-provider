@@ -157,16 +157,16 @@ data:
     bao write auth/kubernetes/config kubernetes_host=https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT
 
     # Enable kv1 secrets engine.
-    bao secrets enable --path=secretv1 kv
+    bao secrets enable --path=secret/ kv
 
     # Configure policies.
     bao policy write keycloak/reader - <<EOF
-    path "secretv1/*" {
+    path "secret/keycloak/*" {
       capabilities = ["read"]
     }
     EOF
     bao policy write keycloak/admin - <<EOF
-    path "secretv1/*" {
+    path "secret/keycloak/*" {
       capabilities = ["create", "read", "update", "delete", "list"]
     }
     EOF

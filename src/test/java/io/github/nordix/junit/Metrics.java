@@ -95,13 +95,13 @@ public class Metrics {
     private static BodyHandler<Map<String, String>> prometheusFormatBodyHandler() {
         // Example for Prometheus text format:
         //
-        // # HELP vault_route_list_secretv1_ vault_route_list_secretv1_
-        // # TYPE vault_route_list_secretv1_ summary
-        // vault_route_list_secretv1_{quantile="0.5"} NaN
-        // vault_route_list_secretv1_{quantile="0.9"} NaN
-        // vault_route_list_secretv1_{quantile="0.99"} NaN
-        // vault_route_list_secretv1__sum 0.16811500489711761
-        // vault_route_list_secretv1__count 1
+        // # HELP vault_route_list_secret_ vault_route_list_secret_
+        // # TYPE vault_route_list_secret_ summary
+        // vault_route_list_secret_{quantile="0.5"} NaN
+        // vault_route_list_secret_{quantile="0.9"} NaN
+        // vault_route_list_secret_{quantile="0.99"} NaN
+        // vault_route_list_secret__sum 0.16811500489711761
+        // vault_route_list_secret__count 1
         return respInfo -> BodySubscribers.mapping(
                 BodySubscribers.ofString(StandardCharsets.UTF_8),
                 body -> {

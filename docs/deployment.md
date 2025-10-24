@@ -165,13 +165,13 @@ To grant these permissions, create the following policies:
 
 ```bash
 bao policy write keycloak/reader - <<EOF
-path "secret/*" {
+path "secret/keycloak/*" {
     capabilities = ["read"]
 }
 EOF
 
 bao policy write keycloak/admin - <<EOF
-path "secret/*" {
+path "secret/keycloak/*" {
     capabilities = ["create", "read", "update", "delete", "list"]
 }
 EOF
@@ -204,7 +204,7 @@ The extensions use the specified role during authentication to obtain a token.
 Enable the KV secrets engine at your desired path:
 
 ```
-bao secrets enable kv --path secret/
+bao secrets enable --path=secret/ kv
 ```
 
 This project currently supports only KV version 1.

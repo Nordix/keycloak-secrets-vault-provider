@@ -22,7 +22,7 @@ See the [Overview](overview.md) for more information, including the list of Vaul
 
 For detailed API documentation, including request and response schemas, see
 
-- [API documentation](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/Nordix/keycloak-secrets-vault-provider/refs/heads/main/docs/openapi.json) (rendering courtesy of petstore.swagger.io).
+- [API documentation](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/Nordix/keycloak-secrets-vault-provider/refs/heads/main/docs/openapi.json) (HTML rendering courtesy of petstore.swagger.io).
 
 ## Access Control and Realm Isolation
 
