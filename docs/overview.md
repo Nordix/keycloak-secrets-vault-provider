@@ -146,8 +146,8 @@ secret/                                       # KV mount from <kv-mount> configu
     ├─ my-realm/                              # Realm from %realm% variable in <kv-path-prefix> configuration.
     │  ├─ ldap-bindpw                         # Secret identifier from ${vault.ldap-bindpw}.
     │  │  └─ { "secret": "my-secret" }        # Secret data with single key "secret" and value "my-secret".
-    │  ├─ smtp-password                       # Another secret.
-    │  │  └─ { "secret": "my-smtp-password" }
+    │  └─ smtp-password                       # Another secret.
+    │     └─ { "secret": "my-smtp-password" }
     └─ your-realm/                            # Another realm.
        └─ ldap-bindpw                         # Same secret id ${vault.ldap-bindpw}, different realm.
           └─ { "secret": "my-other-secret" }
