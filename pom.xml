@@ -276,7 +276,7 @@
 
   </build>
 
-  <!-- Integration test: manage test environment when given  -->
+  <!-- Integration test: manage test environment when given -DmanageTestEnv=true -->
   <profiles>
     <profile>
       <id>manage-test-environment</id>
@@ -293,7 +293,7 @@
             <artifactId>exec-maven-plugin</artifactId>
             <version>${version.maven.exec.plugin}</version>
             <executions>
-              <!-- ./mvnw exec:exec@create-kind-cluster -DtestEnv=true -->
+              <!-- ./mvnw exec:exec@create-kind-cluster -DmanageTestEnv=true -->
               <execution>
                 <id>create-kind-cluster</id>
                 <phase>pre-integration-test</phase>
@@ -312,7 +312,7 @@
                   </arguments>
                 </configuration>
               </execution>
-              <!-- ./mvnw exec:java@generate-certificates -DtestEnv=true -->
+              <!-- ./mvnw exec:java@generate-certificates -DmanageTestEnv=true -->
               <execution>
                 <id>generate-certificates</id>
                 <phase>pre-integration-test</phase>
@@ -324,7 +324,7 @@
                   <classpathScope>test</classpathScope>
                 </configuration>
               </execution>
-              <!-- ./mvnw exec:exec@deploy-keycloak-and-openbao -DtestEnv=true -->
+              <!-- ./mvnw exec:exec@deploy-keycloak-and-openbao -DmanageTestEnv=true -->
               <execution>
                 <id>deploy-keycloak-and-openbao</id>
                 <phase>pre-integration-test</phase>
@@ -340,7 +340,7 @@
                   </arguments>
                 </configuration>
               </execution>
-              <!-- ./mvnw exec:exec@delete-kind-cluster -DtestEnv=true -->
+              <!-- ./mvnw exec:exec@delete-kind-cluster -DmanageTestEnv=true -->
               <execution>
                 <id>delete-kind-cluster</id>
                 <phase>post-integration-test</phase>
