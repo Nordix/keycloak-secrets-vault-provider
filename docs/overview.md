@@ -138,7 +138,7 @@ Secrets Manager is accessible only via the REST API and a user interface within 
 
 Each secret is stored in OpenBao or HashiCorp Vault as a single-entry key–value object: the key is always `secret` and the value is the secret itself.
 
-The hierarchy below shows how secrets are stored in the KV engine:
+The hierarchy below shows how secrets are stored in the KV secrets engine:
 
 ```
 secret/                                       # KV mount from <kv-mount> configuration.
