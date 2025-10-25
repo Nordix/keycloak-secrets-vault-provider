@@ -27,7 +27,7 @@ For detailed API documentation, including request and response schemas, see
 ## Access Control and Realm Isolation
 
 Vault secrets are automatically restricted to the specific Keycloak realm in which they are created.
-A secret named `my-client` created in `realm-1` is not the same as `my-client` in `realm-2`.
+A secret named `my-secret` created in `my-realm` is not the same as `my-secret` in `your-realm`.
 
 Managing secrets with the Secrets Manager endpoint requires the `manage-realm` role in the Keycloak realm.
 
@@ -45,6 +45,7 @@ This helps maintain clarity in environments with multiple secrets per realm.
 | Bind password for LDAP federation             | `ldap.<name>`     | `${vault.ldap.<name>}`   |
 | SMTP server password for email confirmations  | `smtp.<name>`     | `${vault.smtp.<name>}`   |
 
+The secret identifier must conform to the following regular expression `^[a-zA-Z0-9_.:-]+$`.
 It is recommended that the `<name>` part of the secret name is the name of the entity that the secret is associated with.
 For example, if the secret is used with an LDAP federation with identifier `my-ldap-federation`, the secret name should be `ldap.my-ldap-federation`.
 In this case, the Keycloak vault reference would be `${vault.ldap.my-ldap-federation}`.
@@ -54,8 +55,9 @@ In this case, the Keycloak vault reference would be `${vault.ldap.my-ldap-federa
 ## Example Usage
 
 This section provides examples of how to use the Secrets Manager REST API when configuring Keycloak features that require sensitive configuration data, such as LDAP federation.
+See the [API documentation](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/Nordix/keycloak-secrets-vault-provider/refs/heads/main/docs/openapi.json) for details on the request and response schemas for Secrets Manager operations.
 
-### Configure LDAP Federation with vault secret
+### Configure LDAP Federation with Vault Secret
 
 1. Create a secret for LDAP bind password
 
@@ -118,7 +120,7 @@ The realm administrator may first configure LDAP federation with the `${vault.ld
 However, Keycloak will not be able to use the `${vault.ldap.my-ldap-federation}` reference until the secret has been stored using the Secrets Manager.
 Therefore the configuration will not work until the secret is created.
 
-### Modify bind password for LDAP Federation with vault secret
+### Modify Bind Password for LDAP Federation with Vault Secret
 
 The LDAP federation bind password can be modified by updating the secret value in the Secrets Manager.
 
@@ -131,7 +133,18 @@ curl --request PUT \
 
 There is no need to modify the LDAP federation configuration itself, as the reference `${vault.ldap.my-ldap-federation}` remains the same.
 
-### Delete LDAP Federation with vault secret
+### Read LDAP Federation Bind Password from Vault Secret
+
+The bind password stored in the Secrets Manager can be retrieved when needed.
+This allows realm administrators to verify the current secret value or copy it to another system.
+
+```bash
+curl --request GET \
+  https://${KEYCLOAK_ADDR}/admin/realms/my-realm/secrets-manager/ldap.my-ldap-federation \
+  --header "Authorization: Bearer ${KEYCLOAK_TOKEN}"
+```
+
+### Delete LDAP Federation with Vault Secret
 
 1. Delete the federation configuration:
 

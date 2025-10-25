@@ -45,7 +45,12 @@ Example workflow (**Figure 2**):
 **Figure 2:** Keycloak fetches sensitive configuration values from OpenBao.
 <br><br>
 
-See Keycloak's [Vault SPI documentation](https://www.keycloak.org/server/vault) for more details.
+See following documentation for more details:
+
+* [Keycloak Vault SPI](https://www.keycloak.org/server/vault)
+* [OpenBao KV secrets engine](https://openbao.io/docs/secrets/kv/)
+* [HashiCorp Vault KV secrets engine](https://www.vaultproject.io/docs/secrets/kv)
+
 
 #### Limitations of the Vault SPI
 
@@ -83,10 +88,10 @@ Examples:
 To fetch the secret for `${vault.my-secret:my-key}` the provider makes a request to the following URL:
 
 ```
-<address>/<kv-mount>/<kv-path-prefix>/my-secret
+<address>/v1/<kv-mount>/<kv-path-prefix>/my-secret
 ```
 
-where `<address>`, `<kv-mount>`, and `<kv-path-prefix>` are defined in the deployment configuration.
+where `<address>`, `<kv-mount>`, and `<kv-path-prefix>` are defined in the [deployment configuration](deployment.md).
 The provider then extracts the requested key `my-key` from the response and passes it back to Keycloak.
 
 By default, the Secrets Manager REST API creates secrets with a key named `secret`. If no key is specified in the `${vault.<id>}` reference, the Vault SPI provider automatically retrieves the value of this default key.
@@ -105,12 +110,12 @@ See [API documentation](docs/api.md) for detailed usage.
 
 Example workflow (**Figure 3**):
 
-1. The realm administrator stores the LDAP bind password by sending a PUT request to `https://<KEYCLOAK_URL>/admin/realms/my-realm/secrets-manager/ldap-bindpw`.
-   The Secrets Manager writes the password to OpenBao KV secrets engine at the path `secret/keycloak/my-realm/ldap-bindpw`, which encrypts it and stores it on disk.
+1. The realm administrator stores the LDAP bind password by sending a PUT request to `https://<KEYCLOAK_ADDRESS>/admin/realms/my-realm/secrets-manager/ldap-bindpw`.
+   The Secrets Manager writes the password to OpenBao KV secrets engine at `https://<OPENBAO_ADDRESS>/v1/secret/keycloak/my-realm/ldap-bindpw`, which encrypts it and stores it on disk.
 2. The realm administrator configures LDAP federation in Keycloak and sets the LDAP bind password to `${vault.ldap-bindpw}`.
    The reference is stored as part of Keycloak's configuration in the SQL database.
 3. A user logs in.
-4. Keycloak resolves the `${vault.ldap-bindpw}` reference by calling the Vault SPI provider which fetches the actual password from OpenBao KV secrets engine path `secret/keycloak/my-realm/ldap-bindpw`.
+4. Keycloak resolves the `${vault.ldap-bindpw}` reference by calling the Vault SPI provider which fetches the actual password from OpenBao KV secrets engine at `https://<OPENBAO_ADDRESS>/v1/secret/keycloak/my-realm/ldap-bindpw`.
 5. Keycloak uses the cleartext password to bind to the LDAP server for user federation.
 
 Steps (1) and (2) can be performed in any order.
@@ -125,13 +130,28 @@ Therefore the configuration will not work until the secret is created.
 
 Secrets are automatically restricted to the specific Keycloak realm in which they are created.
 A secret named `ldap-bindpw` created in `my-realm` is not the same as `ldap-bindpw` in `your-realm`.
+This isolation is enforced by the `%realm%` variable in the `<kv-path-prefix>` [configuration parameter](deployment.md), which is expanded to the realm name at runtime.
 
 Secrets Manager is accessible only via the REST API and a user interface within Keycloak Admin Console is not available.
 
 ### KV Storage Layout
 
-Each secret is stored in OpenBao or HashiCorp Vault as a key-value map containing only a single entry with the key `secret` and value being the actual secret value.
+Each secret is stored in OpenBao or HashiCorp Vault as a single-entry key–value object: the key is always `secret` and the value is the secret itself.
 
+The hierarchy below shows how secrets are stored in the KV engine:
+
+```
+secret/                                       # KV mount from <kv-mount> configuration.
+ └─ keycloak/                                 # Path prefix from <kv-path-prefix> configuration.
+    ├─ my-realm/                              # Realm from %realm% variable in <kv-path-prefix> configuration.
+    │  ├─ ldap-bindpw                         # Secret identifier from ${vault.ldap-bindpw}.
+    │  │  └─ { "secret": "my-secret" }        # Secret data with single key "secret" and value "my-secret".
+    │  ├─ smtp-password                       # Another secret.
+    │  │  └─ { "secret": "my-smtp-password" }
+    └─ your-realm/                            # Another realm.
+       └─ ldap-bindpw                         # Same secret id ${vault.ldap-bindpw}, different realm.
+          └─ { "secret": "my-other-secret" }
+```
 
 ## Caching of Secrets
 

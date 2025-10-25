@@ -55,33 +55,49 @@ The provider works with both OpenBao and HashiCorp Vault, since both implement t
 | ----------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------- |
 | `--spi-vault--secrets-provider--enabled`              | Enable or disable the secrets provider extension.                         | `true`                                                |
 | `--spi-vault--secrets-provider--address`              | Address (URL) of the OpenBao or HashiCorp Vault server. Must be provided. | N/A                                                   |
-| `--spi-vault--secrets-provider--auth-method`          | Authentication method to use (only `kubernetes` is supported).            | `kubernetes`                                          |
+| `--spi-vault--secrets-provider--auth-method`          | Authentication method to use. <sup>1</sup>                                | `kubernetes`                                          |
 | `--spi-vault--secrets-provider--service-account-file` | Path to the Kubernetes service account token file for authentication.     | `/var/run/secrets/kubernetes.io/serviceaccount/token` |
 | `--spi-vault--secrets-provider--kv-mount`             | KV secrets engine mount point.                                            | `secret`                                              |
-| `--spi-vault--secrets-provider--kv-path-prefix`       | Path prefix for secrets. Supports `%realm%` variable.                     | `keycloak/%realm%`                                    |
-| `--spi-vault--secrets-provider--kv-version`           | KV secrets engine version (only `1` is supported).                        | `1`                                                   |
+| `--spi-vault--secrets-provider--kv-path-prefix`       | Path prefix for secrets. Supports `%realm%` variable. <sup>2</sup>        | `keycloak/%realm%`                                    |
+| `--spi-vault--secrets-provider--kv-version`           | KV secrets engine version. <sup>3</sup>                                   | `1`                                                   |
 | `--spi-vault--secrets-provider--ca-certificate-file`  | Path to CA certificate file for HTTPS connections. Optional.              | N/A                                                   |
 | `--spi-vault--secrets-provider--role`                 | Role to use for authentication.                                           | N/A                                                   |
 | `--spi-vault--secrets-provider--cache-name`           | Name of the Infinispan cache to use for storing secrets.                  | Caching is disabled                                   |
 
-The `%realm%` variable will be replaced with the actual realm name at runtime.
+<sup>1</sup> Only `kubernetes` is supported.
+
+<sup>2</sup> The `%realm%` variable will be replaced with the actual realm name at runtime.
+⚠️ It is important to use this variable as part of the `kv-path-prefix` to ensure realm isolation of secrets.
+
+<sup>3</sup> Only `1` is supported.
 
 #### Secrets Manager
+
+The Secrets Manager parameters mirror those of the Vault Secrets Provider, but use the `admin-realm-restapi-extension--secrets-manager` SPI prefix instead.
+
+Both extensions must be configured with identical values for their corresponding parameters.
+This separate configuration is necessary because the Vault Secrets Provider and Secrets Manager are implemented as distinct SPIs within Keycloak's architecture, despite being deployed as a single JAR file.
+
 
 | Parameter                                                                    | Description                                                                                       | Default Value                                         |
 | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | `--spi-admin-realm-restapi-extension--secrets-manager--enabled`              | Enable or disable the secrets manager extension.                                                  | `true`                                                |
 | `--spi-admin-realm-restapi-extension--secrets-manager--address`              | Address (URL) of the OpenBao or HashiCorp Vault server for the secrets manager. Must be provided. | N/A                                                   |
-| `--spi-admin-realm-restapi-extension--secrets-manager--auth-method`          | Authentication method to use (only `kubernetes` is supported).                                    | `kubernetes`                                          |
+| `--spi-admin-realm-restapi-extension--secrets-manager--auth-method`          | Authentication method to use. <sup>1</sup>                                                        | `kubernetes`                                          |
 | `--spi-admin-realm-restapi-extension--secrets-manager--service-account-file` | Path to the Kubernetes service account token file for secrets manager authentication.             | `/var/run/secrets/kubernetes.io/serviceaccount/token` |
 | `--spi-admin-realm-restapi-extension--secrets-manager--kv-mount`             | KV secrets engine mount point.                                                                    | `secret`                                              |
-| `--spi-admin-realm-restapi-extension--secrets-manager--kv-path-prefix`       | Path prefix for secrets. Supports `%realm%` variable.                                             | `keycloak/%realm%`                                    |
-| `--spi-admin-realm-restapi-extension--secrets-manager--kv-version`           | KV secrets engine version (only `1` is supported).                                                | `1`                                                   |
+| `--spi-admin-realm-restapi-extension--secrets-manager--kv-path-prefix`       | Path prefix for secrets. Supports `%realm%` variable.  <sup>2</sup>                               | `keycloak/%realm%`                                    |
+| `--spi-admin-realm-restapi-extension--secrets-manager--kv-version`           | KV secrets engine version. <sup>3</sup>                                                           | `1`                                                   |
 | `--spi-admin-realm-restapi-extension--secrets-manager--ca-certificate-file`  | Path to CA certificate file for HTTPS connections. Optional.                                      | N/A                                                   |
 | `--spi-admin-realm-restapi-extension--secrets-manager--role`                 | Role to use for authentication.                                                                   | N/A                                                   |
 | `--spi-admin-realm-restapi-extension--secrets-manager--cache-name`           | Name of the Infinispan cache to use for storing secrets.                                          | Caching is disabled                                   |
 
-The `%realm%` variable will be replaced with the actual realm name at runtime.
+<sup>1</sup> Only `kubernetes` is supported.
+
+<sup>2</sup> The `%realm%` variable will be replaced with the actual realm name at runtime.
+⚠️ It is important to use this variable as part of the `kv-path-prefix` to ensure realm isolation of secrets.
+
+<sup>3</sup> Only `1` is supported.
 
 ### Enabling and Configuring Secret Caching (Optional)
 
@@ -136,7 +152,7 @@ Example with a 60 second expiration:
 
 ### Configuring OpenBao or HashiCorp Vault for the Extension
 
-This section explains how to configure OpenBao or HashiCorp Vault so the extension can access secrets stored in the [KV secrets engine](https://openbao.org/docs/secrets/kv/).
+This section gives an example how to configure OpenBao or HashiCorp Vault so the extension can access secrets stored in the [KV secrets engine](https://openbao.org/docs/secrets/kv/).
 The examples are given using CLI but the same steps can be performed using the REST API.
 
 #### Authentication
@@ -177,7 +193,7 @@ path "secret/keycloak/*" {
 EOF
 ```
 
-The `keycloak/reader` policy grants read-only access to all secrets under `secret/*`, while the `keycloak/admin` policy grants create, read, update, delete and list permissions.
+The `keycloak/reader` policy grants read-only access to all secrets under `secret/keycloak/*`, while the `keycloak/admin` policy grants create, read, update, delete and list permissions.
 Alternatively, you can combine the two policies into a single policy that grants both read and write permissions and use it for both extensions.
 
 Assuming your Keycloak pod is running in the `my-application-ns` namespace, and is configured with `spec.template.spec.serviceAccountName: keycloak`, and the `keycloak` service account exists in that namespace, you can associate the policies with the service account by creating the following roles:
