@@ -45,12 +45,13 @@ This helps maintain clarity in environments with multiple secrets per realm.
 | Bind password for LDAP federation             | `ldap.<name>`     | `${vault.ldap.<name>}`   |
 | SMTP server password for email confirmations  | `smtp.<name>`     | `${vault.smtp.<name>}`   |
 
+<sup>1</sup> Client secrets for OAuth2 clients are not currently supported but a pull request has been submitted to upstream Keycloak: [keycloak#39650](https://github.com/keycloak/keycloak/pull/39650).
+
 The secret identifier must conform to the following regular expression `^[a-zA-Z0-9_.:-]+$`.
 It is recommended that the `<name>` part of the secret name is the name of the entity that the secret is associated with.
 For example, if the secret is used with an LDAP federation with identifier `my-ldap-federation`, the secret name should be `ldap.my-ldap-federation`.
 In this case, the Keycloak vault reference would be `${vault.ldap.my-ldap-federation}`.
 
-<sup>1</sup> Client secrets for OAuth2 clients are not currently supported but a pull request has been submitted to upstream Keycloak: [keycloak#39650](https://github.com/keycloak/keycloak/pull/39650).
 
 ## Example Usage
 
