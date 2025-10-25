@@ -24,7 +24,7 @@ To deploy the Vault SPI Secrets Provider and Secrets Manager REST API extension,
 
 ## Configuration
 
-### ⚠️ Keycloak SPI option names now follow a new format
+⚠️ Keycloak SPI option names follow a new format from version 26.3.0 onwards.
 
 When reading the following chapters, keep in mind the new naming scheme for SPI options.
 The new double-dash `--` syntax is now used to separate components of the SPI option names.
