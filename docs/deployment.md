@@ -12,7 +12,7 @@ To deploy the Vault SPI Secrets Provider and Secrets Manager REST API extension,
    Ensure you have JDK and Git installed. Clone the repository and build the project:
 
    ```bash
-   ./mvnw clean package -DskipTests=true
+   ./mvnw clean package -Dmaven.test.skip
    ```
 
    This will produce a JAR file in the `target/` directory.
