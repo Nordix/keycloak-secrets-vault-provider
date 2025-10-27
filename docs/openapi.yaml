@@ -79,14 +79,36 @@ paths:
         in: path
         schema:
           type: string
+      - description: "Character classes to use for random secret generation. Ignored\
+          \ if secret data is provided. Specify as comma-separated values: 'lower'\
+          \ (a-z), 'upper' (A-Z), 'digit' (0-9), 'special' (@#%^-_=+.:)"
+        example: "lower,upper"
+        required: false
+        name: charset
+        in: query
+        schema:
+          type: string
+          default: "lower,upper,digit,special"
+      - description: Number of characters in the generated random secret. Ignored
+          if secret data is provided.
+        example: 32
+        required: false
+        name: length
+        in: query
+        schema:
+          maximum: 2048
+          minimum: 1
+          format: int32
+          type: integer
+          default: 60
       requestBody:
         description: "Optional secret data. If not provided, a random secret will\
           \ be generated."
-        required: false
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/SecretRequest"
+        required: false
       responses:
         "200":
           description: Secret created or updated
