@@ -54,7 +54,7 @@ spec:
     spec:
       containers:
         - name: openbao
-          image: ghcr.io/openbao/openbao:2.4.1
+          image: ghcr.io/openbao/openbao:2.4.3
           command:
             - "/bin/sh"
             - "-c"
@@ -93,7 +93,7 @@ spec:
           #    port: 8200
 
         - name: openbao-configurator
-          image: ghcr.io/openbao/openbao:2.4.1
+          image: ghcr.io/openbao/openbao:2.4.3
           command:
             - "/bin/sh"
             - "-x"
