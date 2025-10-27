@@ -89,6 +89,8 @@ class SecretsManagerIT {
         Assertions.assertTrue(createResp1.body().has("secret"));
         Assertions.assertNotNull(createResp1.body().get("secret").asText());
         Assertions.assertEquals(60, createResp1.body().get("secret").asText().length());
+        Assertions.assertTrue(containsOnlyCharactersFrom(createResp1.body().get("secret").asText(),
+                SecretsManagerResource.SECRET_CHARS));
         Assertions.assertEquals(secretId1, createResp1.body().get("id").asText());
 
         // Create secret with random value by submitting empty JSON document.
@@ -104,6 +106,8 @@ class SecretsManagerIT {
         Assertions.assertTrue(createResp2.body().has("secret"));
         Assertions.assertNotNull(createResp2.body().get("secret").asText());
         Assertions.assertEquals(60, createResp2.body().get("secret").asText().length());
+        Assertions.assertTrue(containsOnlyCharactersFrom(createResp2.body().get("secret").asText(),
+                SecretsManagerResource.SECRET_CHARS));
         Assertions.assertEquals(secretId2, createResp2.body().get("id").asText());
 
         metrics.assertCounterIncrementedBy("vault_route_create_secret__count", 2);
@@ -154,6 +158,9 @@ class SecretsManagerIT {
         Assertions.assertEquals(200, createResp.statusCode());
 
         String initialRandomValue = createResp.body().get("secret").asText();
+        Assertions.assertEquals(60, initialRandomValue.length());
+        Assertions.assertTrue(
+                containsOnlyCharactersFrom(initialRandomValue, SecretsManagerResource.SECRET_CHARS));
 
         // Update secret.
         HttpResponse<JsonNode> updateResp = keycloakAdminClient
@@ -165,9 +172,122 @@ class SecretsManagerIT {
 
         // Verify that the updated value is not the same as the initial value.
         Assertions.assertNotEquals(initialRandomValue, newRandomValue);
+        Assertions.assertEquals(60, newRandomValue.length());
+        Assertions
+                .assertTrue(containsOnlyCharactersFrom(newRandomValue, SecretsManagerResource.SECRET_CHARS));
 
         metrics.assertCounterIncrementedBy("vault_route_create_secret__count", 1);
         metrics.assertCounterIncrementedBy("vault_route_update_secret__count", 1);
+    }
+
+    @Test
+    void testRandomSecretCustomLength() {
+
+        // Set number of characters for random secret generation.
+
+        String secretId1 = "test-secret-random-custom-length";
+        int customLength = 100;
+
+        HttpResponse<JsonNode> createResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId1 + "?length=" + customLength, "PUT");
+
+        Assertions.assertTrue(RestClient.isSuccessfulResponse(createResp),
+                "Failed to create secret: " + createResp.body());
+        String randomValue = createResp.body().get("secret").asText();
+        Assertions.assertEquals(customLength, randomValue.length());
+
+        // Set custom character set for random secret generation.
+
+        String secretId2 = "test-secret-random-custom-charset";
+
+        // Uppercase
+        createResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId2 + "?charset=" + "upper", "PUT");
+
+        Assertions.assertTrue(RestClient.isSuccessfulResponse(createResp),
+                "Failed to create secret: " + createResp.body());
+        randomValue = createResp.body().get("secret").asText();
+        Assertions.assertTrue(
+                containsOnlyCharactersFrom(randomValue, SecretsManagerResource.SECRET_CHAR_CLASS_UPPER));
+
+        // Lowercase
+        createResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId2 + "?charset=" + "lower", "PUT");
+
+        Assertions.assertTrue(RestClient.isSuccessfulResponse(createResp),
+                "Failed to create secret: " + createResp.body());
+        randomValue = createResp.body().get("secret").asText();
+        Assertions.assertTrue(
+                containsOnlyCharactersFrom(randomValue, SecretsManagerResource.SECRET_CHAR_CLASS_LOWER));
+
+        // Digit
+        createResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId2 + "?charset=" + "digit", "PUT");
+        Assertions.assertTrue(RestClient.isSuccessfulResponse(createResp),
+                "Failed to create secret: " + createResp.body());
+        randomValue = createResp.body().get("secret").asText();
+        Assertions.assertTrue(
+                containsOnlyCharactersFrom(randomValue, SecretsManagerResource.SECRET_CHAR_CLASS_DIGIT));
+
+        // Special
+        createResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId2 + "?charset=" + "special", "PUT");
+        Assertions.assertTrue(RestClient.isSuccessfulResponse(createResp),
+                "Failed to create secret: " + createResp.body());
+        randomValue = createResp.body().get("secret").asText();
+        Assertions.assertTrue(
+                containsOnlyCharactersFrom(randomValue, SecretsManagerResource.SECRET_CHAR_CLASS_SPECIAL));
+
+        // Combination: upper, lower, digit
+        createResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId2 + "?charset=" + "upper,lower,digit", "PUT");
+        Assertions.assertTrue(RestClient.isSuccessfulResponse(createResp),
+                "Failed to create secret: " + createResp.body());
+        randomValue = createResp.body().get("secret").asText();
+        Assertions.assertTrue(containsOnlyCharactersFrom(randomValue,
+                SecretsManagerResource.SECRET_CHAR_CLASS_UPPER,
+                SecretsManagerResource.SECRET_CHAR_CLASS_LOWER,
+                SecretsManagerResource.SECRET_CHAR_CLASS_DIGIT));
+
+
+        // Set both custom length and character set for random secret generation.
+
+        String secretId3 = "test-secret-random-custom-length-charset";
+        int customLength3 = 150;
+
+        createResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId3 + "?length=" + customLength3 + "&charset=" + "lower,digit",
+                        "PUT");
+        Assertions.assertTrue(RestClient.isSuccessfulResponse(createResp),
+                "Failed to create secret: " + createResp.body());
+        randomValue = createResp.body().get("secret").asText();
+        Assertions.assertEquals(customLength3, randomValue.length());
+        Assertions.assertTrue(containsOnlyCharactersFrom(randomValue,
+                SecretsManagerResource.SECRET_CHAR_CLASS_LOWER,
+                SecretsManagerResource.SECRET_CHAR_CLASS_DIGIT));
+    }
+
+    @Test
+    void testRandomSecretExcessiveLength() {
+        String secretId = "test-secret-random-excessive-length";
+        int excessiveLength = 5000;
+
+        HttpResponse<JsonNode> createResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId + "?length=" + excessiveLength, "PUT");
+
+        Assertions.assertEquals(400, createResp.statusCode(),
+                "Creating secret with excessive length should fail with 400 Bad Request");
+    }
+
+    @Test
+    void testRandomSecretInvalidCharset() {
+        String secretId = "test-secret-random-invalid-charset";
+
+        HttpResponse<JsonNode> createResp = keycloakAdminClient
+                .sendRequest(API_PATH + "/" + secretId + "?charset=" + "upper,unknown", "PUT");
+
+        Assertions.assertEquals(400, createResp.statusCode(),
+                "Creating secret with invalid charset should fail with 400 Bad Request");
     }
 
     @Test
@@ -401,4 +521,14 @@ class SecretsManagerIT {
             logger.warnv(e, "Exception during secrets cleanup for realm {0}", realm);
         }
     }
+
+    private static boolean containsOnlyCharactersFrom(String password, String... charClasses) {
+        StringBuilder allowedChars = new StringBuilder();
+        for (String charClass : charClasses) {
+            allowedChars.append(charClass);
+        }
+        String allowedCharsStr = allowedChars.toString();
+        return password.chars().allMatch(c -> allowedCharsStr.indexOf(c) >= 0);
+    }
+
 }
