@@ -17,10 +17,31 @@ To deploy the Vault SPI Secrets Provider and Secrets Manager REST API extension,
 
    This will produce a JAR file in the `target/` directory.
 
+   ⚠️ See the section [Keycloak Version Compatibility Profiles](#keycloak-version-compatibility-profiles) below.
+
 2. Copy the JAR to Keycloak
 
    Copy the compiled JAR file to the `providers/` directory of your Keycloak installation.
    For example, if using the official [Keycloak container image](https://www.keycloak.org/server/containers), the extension should be placed in the `/opt/keycloak/providers/` directory.
+
+## Keycloak Version Compatibility Profiles
+
+This project supports multiple Keycloak versions using Maven profiles.
+Select the profile that matches your target Keycloak version when building.
+
+| Profile ID         | Keycloak Version  | Source Directory     | Activation                |
+|--------------------|-------------------|----------------------|---------------------------|
+| keycloak-current   | Latest            | `src/compat/current` | Active by default         |
+| keycloak-26.2      | 26.2.x            | `src/compat/26.2`    | `-Pkeycloak-26.2`         |
+
+By default, the project builds against Keycloak 26.3.x and newer by using `keycloak-current` profile.
+The default profile is kept up to date with new Keycloak releases using Dependabot and automated tests in GitHub Actions.
+
+To build for Keycloak 26.2.x, run:
+
+```bash
+./mvnw clean package -Dmaven.test.skip -Pkeycloak-26.2
+```
 
 ## Configuration
 

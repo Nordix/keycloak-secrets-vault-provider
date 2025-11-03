@@ -18,12 +18,12 @@ import org.keycloak.services.resources.admin.fgap.AdminPermissionEvaluator;
 
 import io.github.nordix.keycloak.common.ProviderConfig;
 
-public class SecretsManagerProvider implements AdminRealmResourceProvider {
+public class SecretsManagerProviderCompat implements AdminRealmResourceProvider {
 
-    private static Logger logger = Logger.getLogger(SecretsManagerProvider.class);
+    private static Logger logger = Logger.getLogger(SecretsManagerProviderCompat.class);
     private final ProviderConfig providerConfig;
 
-    public SecretsManagerProvider(ProviderConfig providerConfig) {
+    public SecretsManagerProviderCompat(ProviderConfig providerConfig) {
         logger.debugf("Creating SecretManagerProvider instance");
         this.providerConfig = providerConfig;
     }
@@ -37,6 +37,6 @@ public class SecretsManagerProvider implements AdminRealmResourceProvider {
     public Object getResource(KeycloakSession session, RealmModel realm, AdminPermissionEvaluator auth,
             AdminEventBuilder adminEvent) {
         logger.debugv("Creating SecretManagerProvider for session: {0}, realm: {1}", session, realm.getName());
-        return new SecretsManagerResource(session, realm, auth, adminEvent, providerConfig);
+        return new SecretsManagerResourceCompat(session, realm, auth, adminEvent, providerConfig);
     }
 }

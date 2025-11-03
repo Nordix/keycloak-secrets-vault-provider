@@ -35,7 +35,7 @@ public class SecretsManagerProviderFactory implements AdminRealmResourceProvider
     @Override
     public AdminRealmResourceProvider create(KeycloakSession session) {
         logger.debug("Creating SecretManagerProvider");
-        return new SecretsManagerProvider(config);
+        return new SecretsManagerProviderCompat(config);
     }
 
     @Override
