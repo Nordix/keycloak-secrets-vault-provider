@@ -40,6 +40,7 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -51,9 +52,18 @@ public class SecretsManagerResource {
     private static Logger logger = Logger.getLogger(SecretsManagerResource.class);
 
     /**
+     * Character classes for random secret generation: upper, lower, digit, special.
+     */
+    static final String SECRET_CHAR_CLASS_UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    static final String SECRET_CHAR_CLASS_LOWER = "abcdefghijklmnopqrstuvwxyz";
+    static final String SECRET_CHAR_CLASS_DIGIT = "0123456789";
+    static final String SECRET_CHAR_CLASS_SPECIAL = "@#%^-_=+.:";
+
+    /**
      * Characters used to generate random secret values.
      */
-    private static final String SECRET_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#%^-_=+.:";
+    static final String SECRET_CHARS = SECRET_CHAR_CLASS_UPPER + SECRET_CHAR_CLASS_LOWER
+            + SECRET_CHAR_CLASS_DIGIT + SECRET_CHAR_CLASS_SPECIAL;
 
     /**
      * The name of the field in OpenBao / HashiCorp Vault where the secret value is
@@ -114,7 +124,8 @@ public class SecretsManagerResource {
     @APIResponse(responseCode = "400", description = "Bad request, e.g., invalid ID format")
     @APIResponse(responseCode = "500", description = "Internal server error")
     public Response getSecret(
-            @Parameter(description = "The ID of the secret to retrieve. Must match regular expression " + SECRET_ID_REGEX
+            @Parameter(description = "The ID of the secret to retrieve. Must match regular expression "
+                    + SECRET_ID_REGEX
                     + " and must exist.", required = true) @PathParam("id") String id) {
 
         authorizeRequest();
@@ -149,23 +160,32 @@ public class SecretsManagerResource {
     @PUT
     @Path("{id}")
     @Operation(summary = "Create or update a secret", description = "Creates a new secret or updates an existing secret. If a secret value is not provided in the request body, a random secret will be generated.")
+    @RequestBody(description = "Optional secret data. If not provided, a random secret will be generated.", required = false, content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = SecretRequest.class)))
     @APIResponse(responseCode = "200", description = "Secret created or updated", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = SecretResponse.class)))
     @APIResponse(responseCode = "400", description = "Bad request, e.g., invalid ID format")
     @APIResponse(responseCode = "500", description = "Internal server error")
     public Response updateSecret(
             @Parameter(description = "The ID of the secret to update. Must match regular expression " + SECRET_ID_REGEX
                     + ".", required = true) @PathParam("id") String id,
-            @RequestBody(description = "Optional secret data. If not provided, a random secret will be generated.", required = false) SecretRequest secretRequest) {
-
+            SecretRequest secretRequest,
+            @Parameter(description = "Number of characters in the generated random secret. Ignored if secret data is provided.", required = false, example = "32") @Schema(defaultValue = "60", minimum = "1", maximum = "2048") @QueryParam("length") Integer length,
+            @Parameter(description = "Character classes to use for random secret generation. Ignored if secret data is provided. Specify as comma-separated values: 'lower' (a-z), 'upper' (A-Z), 'digit' (0-9), 'special' ("
+                    + SECRET_CHAR_CLASS_SPECIAL
+                    + ")", required = false, example = "lower,upper") @Schema(defaultValue = "lower,upper,digit,special") @QueryParam("charset") String charset) {
 
         authorizeRequest();
+
+        logger.debugv("Creating/updating secret with ID: {0} in realm {1}", id, realm.getName());
 
         validateSecretIdFormat(id);
 
         String secretValue;
         if (secretRequest == null || secretRequest.getSecret() == null || secretRequest.getSecret().isEmpty()) {
-            secretValue = createRandomSecretValue();
-            logger.debugv("No secret data provided, generating random secret for ID: {0}", id);
+            logger.debugv(
+                    "No secret data provided, generating random secret for ID: {0} with length {1} and charset {2}", id,
+                    length, charset);
+
+            secretValue = createRandomSecretValue(length, charset);
         } else {
             secretValue = secretRequest.getSecret();
         }
@@ -194,7 +214,8 @@ public class SecretsManagerResource {
     @APIResponse(responseCode = "400", description = "Bad request, e.g., invalid ID format")
     @APIResponse(responseCode = "500", description = "Internal server error")
     public Response deleteSecret(
-            @Parameter(description = "The ID of the secret to delete. Must match the regular expression " + SECRET_ID_REGEX
+            @Parameter(description = "The ID of the secret to delete. Must match the regular expression "
+                    + SECRET_ID_REGEX
                     + ".", required = true) @PathParam("id") String id) {
 
         authorizeRequest();
@@ -272,16 +293,77 @@ public class SecretsManagerResource {
                 .getCache(providerConfig.getCacheName()).remove(cacheKey);
     }
 
-    private static String createRandomSecretValue() {
+    /**
+     * Generate a random secret value of specified length and character set.
+     */
+    private static String createRandomSecretValue(Integer length, String charset) {
+        int secretLen = (length != null && length > 0) ? length : 60;
+
+        // Check minimum length.
+        if (secretLen < 1) {
+            throw ErrorResponse.error("Secret length must be at least 1 character", Response.Status.BAD_REQUEST);
+        }
+
+        // Check maximum length.
+        if (secretLen > 2048) {
+            throw ErrorResponse.error("Secret length cannot exceed 2048 characters", Response.Status.BAD_REQUEST);
+        }
+
+        // Check allowed characters.
+        if (charset == null) {
+            charset = SECRET_CHAR_CLASS_LOWER + SECRET_CHAR_CLASS_UPPER + SECRET_CHAR_CLASS_DIGIT
+                    + SECRET_CHAR_CLASS_SPECIAL;
+        } else if (charset.isEmpty()) {
+            throw ErrorResponse.error("Charset cannot be empty", Response.Status.BAD_REQUEST);
+        } else {
+            charset = expandCharsetKeywords(charset);
+        }
+
+        // Generate random secret with specified length and character set.
         SecureRandom random = new SecureRandom();
-        return random.ints(60, 0, SECRET_CHARS.length())
-                .mapToObj(SECRET_CHARS::charAt)
+
+        return random.ints(secretLen, 0, charset.length())
+                .mapToObj(charset::charAt)
                 .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
                 .toString();
     }
 
+    /**
+     * Expands keyword-based character classes to actual characters.
+     */
+    private static String expandCharsetKeywords(String charset) {
+        String[] parts = charset.split(",");
+        StringBuilder sb = new StringBuilder();
+        for (String part : parts) {
+            String trimmed = part.trim().toLowerCase();
+            switch (trimmed) {
+                case "upper":
+                    sb.append(SECRET_CHAR_CLASS_UPPER);
+                    break;
+                case "lower":
+                    sb.append(SECRET_CHAR_CLASS_LOWER);
+                    break;
+                case "digit":
+                    sb.append(SECRET_CHAR_CLASS_DIGIT);
+                    break;
+                case "special":
+                    sb.append(SECRET_CHAR_CLASS_SPECIAL);
+                    break;
+                default:
+                    throw ErrorResponse.error("Invalid charset specification: " + charset,
+                            Response.Status.BAD_REQUEST);
+            }
+        }
+
+        if (sb.isEmpty()) {
+            throw ErrorResponse.error("Invalid charset specification: " + charset,
+                    Response.Status.BAD_REQUEST);
+        }
+
+        return sb.toString();
+    }
+
     public class SecretsListResponse {
-        @Parameter(description = "List of secret IDs", required = true)
         @JsonProperty("secret_ids")
         @Schema(required = true, description = "List of secret IDs for the realm", examples = {
                 "[\"secret-id-1\", \"secret-id-2\"]" })
@@ -304,7 +386,6 @@ public class SecretsManagerResource {
     }
 
     public static class SecretRequest {
-        @Parameter(description = "Secret data", required = false) // Request body is optional
         @Schema(required = false, description = "The secret value to be stored. If omitted or empty, a random secret is generated.", examples = {
                 "my-secret-value" })
         private String secret;
@@ -323,16 +404,14 @@ public class SecretsManagerResource {
     }
 
     public static class SecretResponse {
-        @Parameter(description = "The ID of the secret")
         @Schema(description = "The ID of the secret.", required = true, examples = { "secret-id-1" })
         private String id;
 
         @JsonProperty(value = "vault_id")
-        @Parameter(description = "The Keycloak Vault ID for this secret")
-        @Schema(description = "The Keycloak Vault ID for this secret.", required = true, examples = { "${vault.secret-id-1}" })
+        @Schema(description = "The Keycloak Vault ID for this secret.", required = true, examples = {
+                "${vault.secret-id-1}" })
         private String vaultId;
 
-        @Parameter(description = "The secret value")
         @Schema(description = "The secret value.", required = true, examples = { "my-secret-value" })
         private String secret;
 
