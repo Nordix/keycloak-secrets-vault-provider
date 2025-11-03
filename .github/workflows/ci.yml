@@ -38,4 +38,4 @@ jobs:
 
       - name: Build and test
         run: |
-          ./mvnw clean verify --batch-mode --update-snapshots -DmanageTestEnv=true
+          ./mvnw clean verify --batch-mode --update-snapshots -DmanageTestEnv=true -Pkeycloak-current

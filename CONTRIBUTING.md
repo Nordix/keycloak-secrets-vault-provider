@@ -10,6 +10,8 @@ To build the project without running tests:
 ./mvnw clean package -DskipTests
 ```
 
+This compiles the source code and creates a JAR file in the `target` directory for use in subsequent steps.
+
 ## Local Development Environment
 
 > **Note:** Integration tests require [kind](https://kind.sigs.k8s.io/) and [kubectl](https://kubernetes.io/docs/tasks/tools/) to be installed.
@@ -19,7 +21,7 @@ To avoid repeatedly setting up the environment during development, you can first
 1. Create a Kind cluster
 
     ```bash
-    ./mvnw pre-integration-test -DmanageTestEnv=true
+    ./mvnw pre-integration-test -DmanageTestEnv=true -Dmaven.main.skip -Dmaven.test.skip
     ```
 
     You can then run the tests against the manually created environment without needing to set up the cluster each time.
@@ -30,6 +32,11 @@ To avoid repeatedly setting up the environment during development, you can first
     - Generate certificates for internal communication between Keycloak and OpenBao.
     - Deploy Keycloak with the compiled JAR, configure two realms ("first" and "second") and create a user in the "second" realm for testing identity brokering with IdP secret using Vault SPI.
     - Deploy OpenBao, initialize and unseal, configure KV secrets engine, and create a roles and policies for Keycloak.
+
+    Note: If you make changes to the code, remember to rebuild the project using `./mvnw clean package -DskipTests` and restart Keycloak to pick up the changes by deleting the Keycloak pods `kubectl delete pods -l app=keycloak`.
+
+    Note: `-Dmaven.main.skip` and `-Dmaven.test.skip` are used to skip building the main and test code during this setup phase.
+    If you want to also build the code then add the Keycloak version profile you are working on, e.g. `./mvnw pre-integration-test -Pkeycloak-current -DmanageTestEnv=true`.
 
 2. Run tests
 

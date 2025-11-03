@@ -35,6 +35,7 @@
     <version.maven.jacoco.plugin>0.8.13</version.maven.jacoco.plugin>
     <version.maven.shade.plugin>3.5.1</version.maven.shade.plugin>
     <version.maven.exec.plugin>3.6.2</version.maven.exec.plugin>
+    <version.maven.build.helper.plugin>3.6.1</version.maven.build.helper.plugin>
     <version.selenium>4.38.0</version.selenium>
     <version.certy>0.4.1</version.certy>
   </properties>
@@ -276,8 +277,82 @@
 
   </build>
 
-  <!-- Integration test: manage test environment when given -DmanageTestEnv=true -->
   <profiles>
+
+    <!-- Conditional compilation for compatibility with different Keycloak versions -->
+
+    <!-- Default profile: keycloak-current will compile against the latest Keycloak version.
+         This profile compiles the code against the latest Keycloak APIs.
+         Version is being updated by github dependabot automatically.
+         See src/compat/current/java for the code.
+    -->
+    <profile>
+      <id>keycloak-current</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <version>${version.maven.build.helper.plugin}</version>
+            <executions>
+              <execution>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>add-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>src/compat/current/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!-- Keycloak 26.2.x profile.
+         This profile compiles the code against Keycloak 26.2.x APIs.
+         See src/compat/26.2/java for the code.
+         To use this profile, run
+           ./mvnw clean package -Pkeycloak-26.2
+    -->
+    <profile>
+      <id>keycloak-26.2</id>
+      <properties>
+        <version.keycloak>26.2.4</version.keycloak>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <version>${version.maven.build.helper.plugin}</version>
+            <executions>
+              <execution>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>add-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>src/compat/26.2/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+
+
+    <!-- Integration test: manage test environment when given -DmanageTestEnv=true -->
     <profile>
       <id>manage-test-environment</id>
       <activation>

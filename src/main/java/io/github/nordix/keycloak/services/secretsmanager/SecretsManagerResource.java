@@ -27,7 +27,6 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.services.ErrorResponse;
 import org.keycloak.services.resources.admin.AdminEventBuilder;
-import org.keycloak.services.resources.admin.fgap.AdminPermissionEvaluator;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -47,7 +46,7 @@ import jakarta.ws.rs.core.Response;
 @Tag(name = "Secrets Manager")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public class SecretsManagerResource {
+abstract public class SecretsManagerResource {
 
     private static Logger logger = Logger.getLogger(SecretsManagerResource.class);
 
@@ -77,7 +76,6 @@ public class SecretsManagerResource {
     private static final String SECRET_ID_REGEX = "^[a-zA-Z0-9_.-]+$";
 
     private final RealmModel realm;
-    private final AdminPermissionEvaluator auth;
     private final ProviderConfig providerConfig;
     private BaoClient baoClient;
     private final String resolvedRealmPathPrefix;
@@ -85,12 +83,10 @@ public class SecretsManagerResource {
 
     public SecretsManagerResource(KeycloakSession session,
             RealmModel realm,
-            AdminPermissionEvaluator auth,
             AdminEventBuilder adminEvent,
             ProviderConfig providerConfig) {
         logger.debugv("Creating SecretResource for session: {0}, realm: {1}", session, realm.getName());
         this.realm = realm;
-        this.auth = auth;
         this.providerConfig = providerConfig;
         this.resolvedRealmPathPrefix = providerConfig.getKvPathPrefix().replace("%realm%", realm.getName());
         this.session = session;
@@ -104,6 +100,8 @@ public class SecretsManagerResource {
     public Response listSecrets() {
 
         authorizeRequest();
+
+        initializeBaoClient();
 
         logger.debugv("Listing all secrets for realm {0}", realm.getName());
 
@@ -129,6 +127,8 @@ public class SecretsManagerResource {
                     + " and must exist.", required = true) @PathParam("id") String id) {
 
         authorizeRequest();
+
+        initializeBaoClient();
 
         logger.debugv("Retrieving secret with ID: {0} in realm {1}", id, realm.getName());
 
@@ -175,6 +175,8 @@ public class SecretsManagerResource {
 
         authorizeRequest();
 
+        initializeBaoClient();
+
         logger.debugv("Creating/updating secret with ID: {0} in realm {1}", id, realm.getName());
 
         validateSecretIdFormat(id);
@@ -220,6 +222,8 @@ public class SecretsManagerResource {
 
         authorizeRequest();
 
+        initializeBaoClient();
+
         logger.debugv("Deleting secret with ID: {0} in realm {1}", id, realm.getName());
 
         validateSecretIdFormat(id);
@@ -237,12 +241,14 @@ public class SecretsManagerResource {
 
     /**
      * Checks that requester is authorized to manage secrets.
-     * Only if authorized, log in to OpenBao/HashiCorp Vault.
+     * This method is implemented by concrete subclasses per Keycloak version (pre 26.3.x vs post 26.3.x).
      */
-    private void authorizeRequest() {
-        // Check manage-realm permission, throws if unauthorized.
-        auth.realm().requireManageRealm();
+    protected abstract void authorizeRequest();
 
+    /**
+     * Login to OpenBao/HashiCorp Vault.
+     */
+    private void initializeBaoClient() {
         this.baoClient = new BaoClient(providerConfig.getAddress());
         if (providerConfig.getCaCertificateFile() != null && !providerConfig.getCaCertificateFile().isEmpty()) {
             this.baoClient.withCaCertificateFile(providerConfig.getCaCertificateFile());
