@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.security.GeneralSecurityException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -38,6 +39,8 @@ public class RestClient {
     private static Logger logger = Logger.getLogger(RestClient.class);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final Duration CONNECTION_TIMEOUT = Duration.ofSeconds(3);
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
     private final URI baseUrl;
     private String caCertificateFile;
@@ -53,6 +56,7 @@ public class RestClient {
 
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(baseUrl.resolve(endpoint))
+                .timeout(REQUEST_TIMEOUT)
                 .header("Content-Type", "application/json");
 
         headers.forEach(requestBuilder::header);
@@ -148,6 +152,7 @@ public class RestClient {
     private HttpClient getHttpClient() {
         Builder clientBuilder = HttpClient.newBuilder();
 
+        clientBuilder.connectTimeout(CONNECTION_TIMEOUT);
         clientBuilder.followRedirects(HttpClient.Redirect.NORMAL);
 
         if (caCertificateFile != null) {
