@@ -9,7 +9,6 @@
 package io.github.nordix.baoclient;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpClient.Builder;
@@ -17,6 +16,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandler;
 import java.net.http.HttpResponse.BodySubscribers;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyStore;
@@ -41,6 +41,7 @@ public class RestClient {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final Duration CONNECTION_TIMEOUT = Duration.ofSeconds(3);
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
+    private static final String CONTENT_TYPE_JSON = "application/json";
 
     private final URI baseUrl;
     private String caCertificateFile;
@@ -57,7 +58,7 @@ public class RestClient {
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(baseUrl.resolve(endpoint))
                 .timeout(REQUEST_TIMEOUT)
-                .header("Content-Type", "application/json");
+                .header("Content-Type", CONTENT_TYPE_JSON);
 
         headers.forEach(requestBuilder::header);
 
@@ -77,12 +78,12 @@ public class RestClient {
         try {
             return getHttpClient().send(request, jsonBodyHandler());
         } catch (IOException e) {
-            String errorMessage = "Failed to send " + request.method() + " to " + request.uri() + ": " + e.getCause();
-            throw new RestClientException(errorMessage, e);
+            throw new RestClientException(String.format("Failed to send %s to %s: %s",
+                    request.method(), request.uri(), e.getCause()), e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            String errorMessage = "Request to " + request.uri() + " was interrupted: " + e.getMessage();
-            throw new RestClientException(errorMessage, e);
+            throw new RestClientException(String.format("Request to %s was interrupted: %s",
+                    request.uri(), e.getMessage()), e);
         }
     }
 
@@ -129,9 +130,7 @@ public class RestClient {
     public RestClient withCaCertificateFile(String caCertificateFile) {
         Objects.requireNonNull(caCertificateFile, "CA certificate file must not be null");
         if (!Files.exists(Paths.get(caCertificateFile))) {
-            String errorMessage = "CA certificate file does not exist: " + caCertificateFile;
-            logger.error(errorMessage);
-            throw new IllegalArgumentException(errorMessage);
+            throw new IllegalArgumentException("CA certificate file does not exist: " + caCertificateFile);
         }
         this.caCertificateFile = caCertificateFile;
         return this;
@@ -168,9 +167,8 @@ public class RestClient {
 
                 clientBuilder.sslContext(sslContext);
             } catch (IOException | GeneralSecurityException e) {
-                String errorMessage = "Error loading CA certificate: " + e.getMessage();
-                logger.error(errorMessage, e);
-                throw new RestClientException(errorMessage, e);
+                throw new RestClientException(String.format("Failed to load CA certificate from '%s': %s",
+                        caCertificateFile, e.getMessage()), e);
             }
         }
 
@@ -178,15 +176,55 @@ public class RestClient {
     }
 
     private static BodyHandler<JsonNode> jsonBodyHandler() {
-        return responseInfo -> BodySubscribers.mapping(
-                BodySubscribers.ofString(java.nio.charset.StandardCharsets.UTF_8),
-                body -> {
-                    try {
-                        return OBJECT_MAPPER.readTree(body);
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                });
+        return responseInfo -> {
+            int statusCode = responseInfo.statusCode();
+            String contentType = responseInfo.headers().firstValue("Content-Type").orElse("<none>").toLowerCase();
+
+            return BodySubscribers.mapping(
+                    BodySubscribers.ofString(StandardCharsets.UTF_8),
+                    body -> {
+                        if (contentType.contains(CONTENT_TYPE_JSON)) {
+                            try {
+                                return OBJECT_MAPPER.readTree(body);
+                            } catch (IOException e) {
+                                throw new RestClientException(
+                                        String.format(
+                                                "Failed to parse JSON response: HTTP %d, Content-Type: %s, Body: '%s', Error: %s",
+                                                statusCode, contentType, truncateBody(body), e.getMessage()));
+                            }
+                        }
+
+                        // For successful 2xx responses without JSON content-type, return empty object.
+                        if (statusCode / 100 == 2) {
+                            return OBJECT_MAPPER.createObjectNode();
+                        }
+
+                        // For other responses, check if body is empty and return empty object.
+                        if (body == null || body.trim().isEmpty()) {
+                            return OBJECT_MAPPER.createObjectNode();
+                        }
+
+                        // For non-2xx responses with non-JSON content-type and non-empty body, throw exception.
+                        throw new RestClientException(
+                                String.format(
+                                        "Unexpected response: HTTP %d, Content-Type: %s (expected %s), Body: '%s'",
+                                        statusCode, contentType, CONTENT_TYPE_JSON, truncateBody(body)));
+                    });
+        };
+    }
+
+    private static String truncateBody(String body) {
+        int maxLength = 200;
+        if (body == null) {
+            return "<null>";
+        }
+        if (body.isEmpty()) {
+            return "<empty>";
+        }
+        if (body.length() <= maxLength) {
+            return body;
+        }
+        return body.substring(0, maxLength) + "... (truncated, total length: " + body.length() + ")";
     }
 
     public static class RestClientException extends RuntimeException {
