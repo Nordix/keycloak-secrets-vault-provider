@@ -1,8 +1,5 @@
 # Keycloak Vault Provider for OpenBao and HashiCorp Vault
 
-> **⚠️ Note:**
-> This project is under development and not yet production-ready.
-
 ## Overview
 
 This project provides two extensions for Keycloak that integrate with [OpenBao](https://openbao.org/) and [HashiCorp Vault](https://developer.hashicorp.com/vault):

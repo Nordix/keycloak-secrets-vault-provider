@@ -168,7 +168,7 @@ paths:
           description: Internal server error
 info:
   title: Keycloak Secrets Manager
-  version: 1.0-SNAPSHOT
+  version: 1.0.0
   description: |-
     Manage per-realm Keycloak vault secrets stored in an external vault
                 backend. API base URL is
