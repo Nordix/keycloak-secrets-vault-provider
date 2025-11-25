@@ -16,9 +16,9 @@ updates:
       junit:
         patterns:
           - "org.junit.*"
-          
+
   - package-ecosystem: "docker"
-    directory: "/testing/manifests"
+    directory: "/testing"
     schedule:
       interval: "weekly"
 
