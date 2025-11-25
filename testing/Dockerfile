@@ -1,4 +1,4 @@
-FROM docker.io/eclipse-temurin:21 AS build
+FROM docker.io/eclipse-temurin:25 AS build
 
 #  Copy directory
 COPY . /keycloak-secrets-vault-provider
