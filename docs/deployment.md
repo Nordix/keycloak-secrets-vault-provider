@@ -22,7 +22,8 @@ To deploy the Vault SPI Secrets Provider and Secrets Manager REST API extension,
 2. Copy the JAR to Keycloak
 
    Copy the compiled JAR file to the `providers/` directory of your Keycloak installation.
-   For example, if using the official [Keycloak container image](https://www.keycloak.org/server/containers), the extension should be placed in the `/opt/keycloak/providers/` directory.
+   For example, if using the official [Keycloak container image](https://www.keycloak.org/server/containers), the extension should be placed in the `/opt/keycloak/providers/` directory.<br>  
+   Alternatively, you can build a custom Keycloak image for testing purposes by running `docker/podman build -f testing/Dockerfile -t keycloak-with-secrets-vault-provider:latest`.
 
 ## Keycloak Version Compatibility Profiles
 
