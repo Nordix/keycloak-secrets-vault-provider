@@ -23,7 +23,7 @@
     <version.jackson.core>2.20.1</version.jackson.core>
     <version.smallrye.openapi>4.2.3</version.smallrye.openapi>
     <version.maven.clean.plugin>3.5.0</version.maven.clean.plugin>
-    <version.maven.resources.plugin>3.3.1</version.maven.resources.plugin>
+    <version.maven.resources.plugin>3.4.0</version.maven.resources.plugin>
     <version.maven.compiler.plugin>3.14.1</version.maven.compiler.plugin>
     <version.maven.surefire.plugin>3.5.4</version.maven.surefire.plugin>
     <version.maven.jar.plugin>3.5.0</version.maven.jar.plugin>
