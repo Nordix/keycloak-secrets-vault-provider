@@ -8,7 +8,7 @@ WORKDIR /keycloak-secrets-vault-provider
 RUN ./mvnw clean package -Dmaven.test.skip
 
 # Keycloak image version to use as base
-FROM quay.io/keycloak/keycloak:26.4.6
+FROM quay.io/keycloak/keycloak:26.4.7
 
 # Copy the  built .jar file to /opt/keycloak/providers path
 COPY --from=build /keycloak-secrets-vault-provider/target/secrets-provider-*-SNAPSHOT. /opt/keycloak/providers/
