@@ -60,6 +60,10 @@ class SecretsProviderIT {
     private static final String OPENBAO_BASE_URL = "http://127.0.0.127:8200";
     private static final String OPENBAO_METRICS_URL = OPENBAO_BASE_URL + "/v1/sys/metrics?format=prometheus";
 
+    // The test environment uses filesystem storage for OpenBao, so the secret ID must be shorter than the Linux filename limit.
+    // This value is set below 255 characters to accommodate OpenBao's internal prefixes and suffixes.
+    private static final int LONG_SECRET_ID_LENGTH = 230;
+
     // Keycloak client extension to interact with Keycloak admin API.
     @RegisterExtension
     private static final KeycloakRestClientExtension keycloak0AdminClient = new KeycloakRestClientExtension(
@@ -140,6 +144,18 @@ class SecretsProviderIT {
         AuthenticationResult result = performBrowserLogin(USER_LOGIN, USER_PASSWORD);
         Assertions.assertEquals(AuthenticationResult.UNEXPECTED_ERROR, result,
                 "Expected invalid vault reference error when non-existent field is referenced");
+    }
+
+    @Test
+    void testVeryLongSecretId() {
+        String longSecretId = "a".repeat(LONG_SECRET_ID_LENGTH);
+
+        consumerRealm.storeSecret(longSecretId, PROVIDER_CLIENT_SECRET);
+        consumerRealm.setIdentityBrokeringConfig("${vault." + longSecretId + "}");
+
+        AuthenticationResult result = performBrowserLogin(USER_LOGIN, USER_PASSWORD);
+        Assertions.assertEquals(AuthenticationResult.SUCCESS, result,
+            "Expected successful login when a secret ID of length " + LONG_SECRET_ID_LENGTH + " is used");
     }
 
     @Test
