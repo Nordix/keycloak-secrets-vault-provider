@@ -30,6 +30,9 @@ jobs:
         with:
           languages: java-kotlin
           build-mode: none
+          config: |
+            paths-ignore:
+              - src/compat/26.2
 
       - name: Build
         run: ./mvnw clean package -DskipTests -Pkeycloak-current
