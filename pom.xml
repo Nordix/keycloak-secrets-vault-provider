@@ -17,7 +17,7 @@
 
     <version.keycloak>26.5.2</version.keycloak>
     <version.junit.jupiter>6.0.2</version.junit.jupiter>
-    <version.jboss.logmanager>3.2.0.Final</version.jboss.logmanager>
+    <version.jboss.logmanager>3.2.1.Final</version.jboss.logmanager>
     <version.jboss.logging>3.6.2.Final</version.jboss.logging>
     <version.certy>0.4.1</version.certy>
     <version.jackson.core>2.20.1</version.jackson.core>
