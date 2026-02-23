@@ -36,7 +36,7 @@
     <version.maven.shade.plugin>3.5.1</version.maven.shade.plugin>
     <version.maven.exec.plugin>3.6.3</version.maven.exec.plugin>
     <version.maven.build.helper.plugin>3.6.1</version.maven.build.helper.plugin>
-    <version.selenium>4.40.0</version.selenium>
+    <version.selenium>4.41.0</version.selenium>
     <version.certy>0.4.1</version.certy>
   </properties>
 
