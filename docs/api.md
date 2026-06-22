@@ -40,12 +40,10 @@ This helps maintain clarity in environments with multiple secrets per realm.
 
 | Use case                                      | Secret identifier | Keycloak reference       |
 | --------------------------------------------- | ----------------- | ------------------------ |
-| Client secret for OAuth2 clients <sup>1</sup> | `client.<name>`   | `${vault.client.<name>}` |
+| Client secret for OAuth2 clients              | `client.<name>`   | `${vault.client.<name>}` |
 | Client secret for Identity Brokering          | `idp.<name>`      | `${vault.idp.<name>}`    |
 | Bind password for LDAP federation             | `ldap.<name>`     | `${vault.ldap.<name>}`   |
 | SMTP server password for email confirmations  | `smtp.<name>`     | `${vault.smtp.<name>}`   |
-
-<sup>1</sup> Client secrets for OAuth2 clients are not currently supported but a pull request has been submitted to upstream Keycloak: [keycloak#39650](https://github.com/keycloak/keycloak/pull/39650).
 
 The secret identifier must conform to the following regular expression `^[a-zA-Z0-9_.:-]+$`.
 It is recommended that the `<name>` part of the secret name is the name of the entity that the secret is associated with.
