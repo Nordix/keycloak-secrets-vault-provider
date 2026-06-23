@@ -63,7 +63,7 @@ Currently supported use cases for using `${vault.<id>}` references are:
 - Identity brokering: OAuth2 identity provider client secret
 - Social login: Twitter identity provider client secret
 - Email confirmations: SMTP server password
-- Client secrets for OAuth2 clients are not currently supported but a pull request has been submitted to upstream Keycloak: [keycloak#39650](https://github.com/keycloak/keycloak/pull/39650).
+- Client secrets for OAuth2 clients
 
 Another limitation is visible in the example workflow (**Figure 2**): the secure storage of sensitive configuration data is not transparent for the user.
 The realm administrator must separately store the secret value and configure Keycloak with the reference to that value.

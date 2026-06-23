@@ -14,10 +14,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.jboss.logging.Logger;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -40,8 +42,11 @@ class SecretsManagerIT {
     private final KeycloakRestClientExtension keycloakAdminClient = new KeycloakRestClientExtension(
             KEYCLOAK_BASE_URL);
 
-    private static final String REALM = "first";
+    private static final String REALM = "secrets-manager-test-realm";
     private static final String API_PATH = "/admin/realms/" + REALM + "/secrets-manager";
+
+    @RegisterExtension
+    private final TestRealm testRealm = new TestRealm();
 
     @Test
     void testCreateWithValueAndReadSecret() {
@@ -498,9 +503,18 @@ class SecretsManagerIT {
         }
     }
 
-    @AfterEach
-    void cleanUpSecrets() {
-        cleanUpSecrets(REALM);
+    class TestRealm implements BeforeEachCallback, AfterEachCallback {
+
+        @Override
+        public void beforeEach(ExtensionContext context) throws Exception {
+            keycloakAdminClient.createRealm(REALM);
+        }
+
+        @Override
+        public void afterEach(ExtensionContext context) throws Exception {
+            cleanUpSecrets(REALM);
+            keycloakAdminClient.deleteRealm(REALM);
+        }
     }
 
     private void cleanUpSecrets(String realm) {

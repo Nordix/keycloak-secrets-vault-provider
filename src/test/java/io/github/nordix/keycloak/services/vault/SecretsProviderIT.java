@@ -9,7 +9,6 @@
 package io.github.nordix.keycloak.services.vault;
 
 import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -22,12 +21,6 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -41,22 +34,11 @@ class SecretsProviderIT {
 
     private static Logger logger = Logger.getLogger(SecretsProviderIT.class);
 
-    public enum AuthenticationResult {
-        SUCCESS,
-        UNEXPECTED_ERROR,
-        INVALID_LOGIN,
-        WEBDRIVER_EXCEPTION,
-        UNHANDLED_RESULT
-    }
-
     private static final String KEYCLOAK_0_BASE_URL = "http://127.0.0.127:8080";
     private static final String KEYCLOAK_1_BASE_URL = "http://127.0.0.127:8081";
-    private static final String PROVIDER_REALM = "provider-realm";
-    private static final String CONSUMER_REALM = "consumer-realm";
-    private static final String PROVIDER_CLIENT_NAME = "federator";
-    private static final String PROVIDER_CLIENT_SECRET = "my-secret";
-    private static final String USER_LOGIN = "joe";
-    private static final String USER_PASSWORD = "password";
+    private static final String TEST_REALM = "test-realm";
+    private static final String TEST_CLIENT_ID = "test-client";
+    private static final String CLIENT_SECRET = "my-secret";
     private static final String OPENBAO_BASE_URL = "http://127.0.0.127:8200";
     private static final String OPENBAO_METRICS_URL = OPENBAO_BASE_URL + "/v1/sys/metrics?format=prometheus";
 
@@ -76,104 +58,95 @@ class SecretsProviderIT {
             KEYCLOAK_1_BASE_URL);
 
     @RegisterExtension
-    private final IdentityProviderdRealm providerRealm = new IdentityProviderdRealm();
-
-    @RegisterExtension
-    private final IdentityConsumerRealm consumerRealm = new IdentityConsumerRealm();
+    private final TestRealm testRealm = new TestRealm();
 
     @Test
     void testSecretReference() {
-        consumerRealm.storeSecret("idp.federator", PROVIDER_CLIENT_SECRET);
-        consumerRealm.setIdentityBrokeringConfig("${vault.idp.federator}");
+        testRealm.storeSecret("client.test-client", CLIENT_SECRET);
+        testRealm.createClientWithVaultSecret("${vault.client.test-client}");
 
-        AuthenticationResult result = performBrowserLogin(USER_LOGIN, USER_PASSWORD);
-        Assertions.assertEquals(AuthenticationResult.SUCCESS, result,
-                "Expected successful login when valid vault secret reference is used");
+        int status = performClientCredentialsGrant(KEYCLOAK_0_BASE_URL, TEST_CLIENT_ID, CLIENT_SECRET);
+        Assertions.assertEquals(200, status,
+                "Expected successful authentication when valid vault secret reference is used");
     }
 
     @Test
     void testInvalidSecretReference() {
-        consumerRealm.storeSecret("idp.federator", PROVIDER_CLIENT_SECRET);
-        consumerRealm.setIdentityBrokeringConfig("${vault.idp.invalid}");
+        testRealm.storeSecret("client.test-client", CLIENT_SECRET);
+        testRealm.createClientWithVaultSecret("${vault.does-not-exist}");
 
-        AuthenticationResult result = performBrowserLogin(USER_LOGIN, USER_PASSWORD);
-        Assertions.assertEquals(AuthenticationResult.UNEXPECTED_ERROR, result,
-                "Expected invalid vault reference error when non-existent secret is referenced");
+        int status = performClientCredentialsGrant(KEYCLOAK_0_BASE_URL, TEST_CLIENT_ID, CLIENT_SECRET);
+        Assertions.assertEquals(400, status,
+                "Expected authentication failure when non-existent vault secret is referenced");
     }
 
     @Test
-    void testInvalidCredentials() {
-        consumerRealm.storeSecret("idp.federator", PROVIDER_CLIENT_SECRET);
-        consumerRealm.setIdentityBrokeringConfig("${vault.idp.federator}");
+    void testWrongClientSecret() {
+        testRealm.storeSecret("client.test-client", CLIENT_SECRET);
+        testRealm.createClientWithVaultSecret("${vault.client.test-client}");
 
-        AuthenticationResult result = performBrowserLogin("invalid-user", "wrong-password");
-        Assertions.assertEquals(AuthenticationResult.INVALID_LOGIN, result,
-                "Expected invalid credentials error when wrong username/password is used");
+        int status = performClientCredentialsGrant(KEYCLOAK_0_BASE_URL, TEST_CLIENT_ID, "wrong-secret");
+        Assertions.assertEquals(401, status,
+                "Expected authentication failure when wrong client secret is provided");
     }
 
     @Test
     void testInvalidFormat() {
-        consumerRealm.setIdentityBrokeringConfig("${vault.foo/bar}");
-        AuthenticationResult result = performBrowserLogin(USER_LOGIN, USER_PASSWORD);
-        // NOTE:
-        //
-        // The detailed error cannot be asserted here via the browser but the logs should contain:
-        //
-        //    Invalid secret ID: foo/bar. Must match regex ^[a-zA-Z0-9_.:-]+$
-        //
-        Assertions.assertEquals(AuthenticationResult.UNEXPECTED_ERROR, result,
-                "Expected invalid vault reference error when invalid format is used");
+        testRealm.createClientWithVaultSecret("${vault.foo/bar}");
+
+        int status = performClientCredentialsGrant(KEYCLOAK_0_BASE_URL, TEST_CLIENT_ID, CLIENT_SECRET);
+        Assertions.assertEquals(400, status,
+                "Expected authentication failure when invalid vault reference format is used");
     }
 
     @Test
     void testFieldReference() {
-        consumerRealm.storeSecret("idp.federator", PROVIDER_CLIENT_SECRET);
-        consumerRealm.setIdentityBrokeringConfig("${vault.idp.federator:secret}");
+        testRealm.storeSecret("client.test-client", CLIENT_SECRET);
+        testRealm.createClientWithVaultSecret("${vault.client.test-client:secret}");
 
-        AuthenticationResult result = performBrowserLogin(USER_LOGIN, USER_PASSWORD);
-        Assertions.assertEquals(AuthenticationResult.SUCCESS, result,
-                "Expected successful login when valid vault secret field reference is used");
+        int status = performClientCredentialsGrant(KEYCLOAK_0_BASE_URL, TEST_CLIENT_ID, CLIENT_SECRET);
+        Assertions.assertEquals(200, status,
+                "Expected successful authentication when valid vault secret field reference is used");
     }
-
 
     @Test
     void testInvalidFieldReference() {
-        consumerRealm.storeSecret("idp.federator", PROVIDER_CLIENT_SECRET);
-        consumerRealm.setIdentityBrokeringConfig("${vault.idp.federator:invalid}");
+        testRealm.storeSecret("client.test-client", CLIENT_SECRET);
+        testRealm.createClientWithVaultSecret("${vault.client.test-client:invalid}");
 
-        AuthenticationResult result = performBrowserLogin(USER_LOGIN, USER_PASSWORD);
-        Assertions.assertEquals(AuthenticationResult.UNEXPECTED_ERROR, result,
-                "Expected invalid vault reference error when non-existent field is referenced");
+        int status = performClientCredentialsGrant(KEYCLOAK_0_BASE_URL, TEST_CLIENT_ID, CLIENT_SECRET);
+        Assertions.assertEquals(400, status,
+                "Expected authentication failure when non-existent field is referenced");
     }
 
     @Test
     void testVeryLongSecretId() {
         String longSecretId = "a".repeat(LONG_SECRET_ID_LENGTH);
 
-        consumerRealm.storeSecret(longSecretId, PROVIDER_CLIENT_SECRET);
-        consumerRealm.setIdentityBrokeringConfig("${vault." + longSecretId + "}");
+        testRealm.storeSecret(longSecretId, CLIENT_SECRET);
+        testRealm.createClientWithVaultSecret("${vault." + longSecretId + "}");
 
-        AuthenticationResult result = performBrowserLogin(USER_LOGIN, USER_PASSWORD);
-        Assertions.assertEquals(AuthenticationResult.SUCCESS, result,
-            "Expected successful login when a secret ID of length " + LONG_SECRET_ID_LENGTH + " is used");
+        int status = performClientCredentialsGrant(KEYCLOAK_0_BASE_URL, TEST_CLIENT_ID, CLIENT_SECRET);
+        Assertions.assertEquals(200, status,
+                "Expected successful authentication when a secret ID of length " + LONG_SECRET_ID_LENGTH + " is used");
     }
 
     @Test
     void testSecretCacheDistributedHit() {
-        consumerRealm.storeSecret("idp.federator", PROVIDER_CLIENT_SECRET);
-        consumerRealm.setIdentityBrokeringConfig("${vault.idp.federator}");
+        testRealm.storeSecret("client.test-client", CLIENT_SECRET);
+        testRealm.createClientWithVaultSecret("${vault.client.test-client}");
 
         Metrics metrics = new Metrics(OPENBAO_METRICS_URL);
 
-        // Login to consumer realm using Keycloak 0.
-        AuthenticationResult result = performBrowserLogin(KEYCLOAK_0_BASE_URL, USER_LOGIN, USER_PASSWORD);
-        Assertions.assertEquals(AuthenticationResult.SUCCESS, result,
-                "Expected successful login when valid vault secret reference is used");
+        // Authenticate via Keycloak 0.
+        int status0 = performClientCredentialsGrant(KEYCLOAK_0_BASE_URL, TEST_CLIENT_ID, CLIENT_SECRET);
+        Assertions.assertEquals(200, status0,
+                "Expected successful authentication via Keycloak 0");
 
-        // Login to consumer realm using Keycloak 1.
-        AuthenticationResult result1 = performBrowserLogin(KEYCLOAK_1_BASE_URL, USER_LOGIN, USER_PASSWORD);
-        Assertions.assertEquals(AuthenticationResult.SUCCESS, result1,
-                "Expected successful login when valid vault secret reference is used");
+        // Authenticate via Keycloak 1.
+        int status1 = performClientCredentialsGrant(KEYCLOAK_1_BASE_URL, TEST_CLIENT_ID, CLIENT_SECRET);
+        Assertions.assertEquals(200, status1,
+                "Expected successful authentication via Keycloak 1");
 
         // Check that the secret was only fetched once by Keycloak 0 and Keycloak 1 accessed it from the cache.
         metrics.assertCounterIncrementedBy("vault_route_read_secret__count", 1);
@@ -181,26 +154,25 @@ class SecretsProviderIT {
 
     @Test
     void testSecretCacheDistributedInvalidation() {
-        consumerRealm.storeSecret("idp.federator", PROVIDER_CLIENT_SECRET);
-        consumerRealm.setIdentityBrokeringConfig("${vault.idp.federator}");
+        testRealm.storeSecret("client.test-client", CLIENT_SECRET);
+        testRealm.createClientWithVaultSecret("${vault.client.test-client}");
 
         Metrics metrics = new Metrics(OPENBAO_METRICS_URL);
 
-        AuthenticationResult result = performBrowserLogin(KEYCLOAK_0_BASE_URL, USER_LOGIN, USER_PASSWORD);
-        Assertions.assertEquals(AuthenticationResult.SUCCESS, result,
-                "Expected successful login when valid vault secret reference is used");
+        int status0 = performClientCredentialsGrant(KEYCLOAK_0_BASE_URL, TEST_CLIENT_ID, CLIENT_SECRET);
+        Assertions.assertEquals(200, status0,
+                "Expected successful authentication via Keycloak 0");
 
-        // Update the secret in OpenBao using Keycloak 0. This also evicts the old secret from the distributed cache.
+        // Update the secret in OpenBao via Keycloak 0. This also evicts the old secret from the distributed cache.
         String newSecret = "my-new-secret";
-        consumerRealm.storeSecret("idp.federator", newSecret);
-        providerRealm.updateClientSecret(newSecret);
+        testRealm.storeSecret("client.test-client", newSecret);
 
-        // Login into consumer realm using Keycloak 1.
-        result = performBrowserLogin(KEYCLOAK_1_BASE_URL, USER_LOGIN, USER_PASSWORD);
-        Assertions.assertEquals(AuthenticationResult.SUCCESS, result,
-                "Expected successful login when updated vault secret reference is used");
+        // Authenticate via Keycloak 1 with the new secret.
+        int status1 = performClientCredentialsGrant(KEYCLOAK_1_BASE_URL, TEST_CLIENT_ID, newSecret);
+        Assertions.assertEquals(200, status1,
+                "Expected successful authentication with updated secret via Keycloak 1");
 
-        // Check that there was two reads from OpenBao: one from Keycloak 0 and one from Keycloak 1 after the update.
+        // Check that there were two reads from OpenBao: one from Keycloak 0 and one from Keycloak 1 after the update.
         metrics.assertCounterIncrementedBy("vault_route_read_secret__count", 2);
     }
 
@@ -216,140 +188,63 @@ class SecretsProviderIT {
     @SuppressWarnings("java:S2925") // Suppress sonarqube warning for Thread.sleep usage.
     @Test
     void testSecretCacheExpiry() throws InterruptedException {
-        consumerRealm.storeSecret("idp.federator", PROVIDER_CLIENT_SECRET);
-        consumerRealm.setIdentityBrokeringConfig("${vault.idp.federator}");
+        testRealm.storeSecret("client.test-client", CLIENT_SECRET);
+        testRealm.createClientWithVaultSecret("${vault.client.test-client}");
 
         Metrics metrics = new Metrics(OPENBAO_METRICS_URL);
 
-        // Login to consumer realm (cache miss).
-        AuthenticationResult result = performBrowserLogin(KEYCLOAK_0_BASE_URL, USER_LOGIN, USER_PASSWORD);
-        Assertions.assertEquals(AuthenticationResult.SUCCESS, result,
-                "Expected successful login when valid vault secret reference is used");
+        // Authenticate (cache miss).
+        int status = performClientCredentialsGrant(KEYCLOAK_0_BASE_URL, TEST_CLIENT_ID, CLIENT_SECRET);
+        Assertions.assertEquals(200, status, "Expected successful authentication (cache miss)");
 
-        // Login to consumer realm again (cache hit).
-        result = performBrowserLogin(KEYCLOAK_0_BASE_URL, USER_LOGIN, USER_PASSWORD);
-        Assertions.assertEquals(AuthenticationResult.SUCCESS, result,
-                "Expected successful login when valid vault secret reference is used");
+        // Authenticate again (cache hit).
+        status = performClientCredentialsGrant(KEYCLOAK_0_BASE_URL, TEST_CLIENT_ID, CLIENT_SECRET);
+        Assertions.assertEquals(200, status, "Expected successful authentication (cache hit)");
 
         // Wait for the cache entry to expire.
         Thread.sleep(6000);
 
-        // Login to consumer realm after cache expiry (cache miss).
-        result = performBrowserLogin(KEYCLOAK_0_BASE_URL, USER_LOGIN, USER_PASSWORD);
-        Assertions.assertEquals(AuthenticationResult.SUCCESS, result,
-                "Expected successful login when valid vault secret reference is used");
+        // Authenticate after cache expiry (cache miss).
+        status = performClientCredentialsGrant(KEYCLOAK_0_BASE_URL, TEST_CLIENT_ID, CLIENT_SECRET);
+        Assertions.assertEquals(200, status, "Expected successful authentication (after cache expiry)");
 
         // Check that the secret was fetched 2 times (2 cache misses).
         metrics.assertCounterIncrementedBy("vault_route_read_secret__count", 2);
     }
 
-    AuthenticationResult performBrowserLogin(String username, String password) {
-        return performBrowserLogin(KEYCLOAK_0_BASE_URL, username, password);
+    /**
+     * Perform a client_credentials grant against the token endpoint.
+     *
+     * @return HTTP status code of the token endpoint response
+     */
+    int performClientCredentialsGrant(String baseUrl, String clientId, String clientSecret) {
+        RestClient client = new RestClient(java.net.URI.create(baseUrl));
+        client.withHeader("Content-Type", "application/x-www-form-urlencoded");
+        String body = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
+        HttpResponse<JsonNode> resp = client.sendRequest(
+                "/realms/" + TEST_REALM + "/protocol/openid-connect/token", "POST", body);
+        logger.debugv("Token endpoint response: status={0} body={1}", resp.statusCode(), resp.body());
+        return resp.statusCode();
     }
 
-    AuthenticationResult performBrowserLogin(String baseUrl, String username, String password) {
-        ChromeOptions options = new ChromeOptions();
-        // Comment out headless if want to see browser for debugging.
-        options.addArguments("--headless");
-        WebDriver driver = new ChromeDriver(options);
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-
-        try {
-            String consumerLoginUrl = baseUrl + "/realms/" + CONSUMER_REALM
-                    + "/protocol/openid-connect/auth"
-                    + "?client_id=account&redirect_uri=" + baseUrl + "/realms/" + CONSUMER_REALM
-                    + "/account/"
-                    + "&response_type=code&scope=openid";
-            logger.debug("Navigating to consumer login URL: " + consumerLoginUrl);
-            driver.get(consumerLoginUrl);
-
-            // Click "federator".
-            wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//a[@aria-label='federator']"))).click();
-
-            // Fill in username and password.
-            wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("username"))).sendKeys(username);
-            wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("password"))).sendKeys(password);
-
-            // Click login button.
-            wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[@type='submit']"))).click();
-
-            wait.until(d -> d.getCurrentUrl().contains("/realms/" + CONSUMER_REALM + "/account/")
-                    || d.getPageSource().contains("Unexpected error when authenticating with identity provider")
-                    || d.getPageSource().contains("Invalid username or password"));
-
-            if (driver.getCurrentUrl().contains("/realms/" + CONSUMER_REALM + "/account/")) {
-                return AuthenticationResult.SUCCESS;
-            } else if (driver.getPageSource().contains("Unexpected error when authenticating with identity provider")) {
-                return AuthenticationResult.UNEXPECTED_ERROR;
-            } else if (driver.getPageSource().contains("Invalid username or password")) {
-                return AuthenticationResult.INVALID_LOGIN;
-            }
-        } catch (Exception e) {
-            logger.error("Failed to open browser for login", e);
-            logger.debug(driver.getPageSource());
-            return AuthenticationResult.WEBDRIVER_EXCEPTION;
-        } finally {
-            // Comment out the following line if you want to keep the browser open for debugging.
-            driver.quit();
-        }
-
-        return AuthenticationResult.UNHANDLED_RESULT;
-    }
-
-    class IdentityProviderdRealm implements BeforeEachCallback, AfterEachCallback {
+    class TestRealm implements BeforeEachCallback, AfterEachCallback {
 
         @Override
         public void beforeEach(ExtensionContext context) throws Exception {
-            keycloak0AdminClient.createRealm(PROVIDER_REALM);
-
-            // Create client in provider realm for identity brokering tests.
-            // This client will have cleartext secret and federated consumer realm will be
-            // used to test vault references.
-            keycloak0AdminClient.createClient(PROVIDER_REALM, PROVIDER_CLIENT_NAME,
-                    PROVIDER_CLIENT_SECRET, List.of(KEYCLOAK_0_BASE_URL, KEYCLOAK_1_BASE_URL));
-
-            // Create user in provider realm for identity brokering tests.
-            keycloak0AdminClient.createUser(PROVIDER_REALM, USER_LOGIN, USER_PASSWORD);
-
+            keycloak0AdminClient.createRealm(TEST_REALM);
         }
 
-        public void updateClientSecret(String newSecret) {
-            keycloak0AdminClient.updateClientAttribute(PROVIDER_REALM, PROVIDER_CLIENT_NAME, "secret", newSecret);
-        }
-
-        @Override
-        public void afterEach(ExtensionContext context) throws Exception {
-            keycloak0AdminClient.deleteRealm(PROVIDER_REALM);
-        }
-    }
-
-    class IdentityConsumerRealm implements BeforeEachCallback, AfterEachCallback {
-
-        @Override
-        public void beforeEach(ExtensionContext context) throws Exception {
-            keycloak0AdminClient.createRealm(CONSUMER_REALM);
-        }
-
-        void setIdentityBrokeringConfig(String secret) {
-            logger.info("Configuring identity provider in realm: " + CONSUMER_REALM);
-            keycloak0AdminClient.sendRequest("/admin/realms/" + CONSUMER_REALM + "/identity-provider/instances", "POST",
-                    Map.of(
-                            "alias", "federator",
-                            "providerId", "keycloak-oidc",
-                            "config", Map.of(
-                                    "clientId", PROVIDER_CLIENT_NAME,
-                                    "clientSecret", secret,
-                                    "authorizationUrl",
-                                    KEYCLOAK_0_BASE_URL + "/realms/provider-realm/protocol/openid-connect/auth",
-                                    "tokenUrl",
-                                    KEYCLOAK_0_BASE_URL + "/realms/provider-realm/protocol/openid-connect/token")));
-
+        void createClientWithVaultSecret(String vaultReference) {
+            logger.infov("Creating client {0} in realm {1} with secret reference: {2}",
+                    TEST_CLIENT_ID, TEST_REALM, vaultReference);
+            keycloak0AdminClient.createClient(TEST_REALM, TEST_CLIENT_ID, vaultReference,
+                    List.of(KEYCLOAK_0_BASE_URL, KEYCLOAK_1_BASE_URL));
         }
 
         void storeSecret(String secretName, String secretValue) {
-            logger.debugv("Storing secret {0} with value {1} in realm {2}", secretName, secretValue, CONSUMER_REALM);
+            logger.debugv("Storing secret {0} with value {1} in realm {2}", secretName, secretValue, TEST_REALM);
             HttpResponse<JsonNode> response = keycloak0AdminClient.sendRequest(
-                    "/admin/realms/" + CONSUMER_REALM + "/secrets-manager/" + secretName, "PUT",
+                    "/admin/realms/" + TEST_REALM + "/secrets-manager/" + secretName, "PUT",
                     Map.of("secret", secretValue));
             Assertions.assertTrue(RestClient.isSuccessfulResponse(response),
                     "Failed to store secret: " + secretName + " " + response.body());
@@ -358,26 +253,25 @@ class SecretsProviderIT {
         @Override
         public void afterEach(ExtensionContext context) throws Exception {
             // Clean up secrets before deleting the realm (otherwise they will be left orphaned in OpenBao).
-            logger.info("Cleaning up secrets for realm: " + CONSUMER_REALM);
+            logger.info("Cleaning up secrets for realm: " + TEST_REALM);
             try {
                 HttpResponse<JsonNode> listResp = keycloak0AdminClient
-                        .sendRequest("/admin/realms/" + CONSUMER_REALM + "/secrets-manager", "GET");
+                        .sendRequest("/admin/realms/" + TEST_REALM + "/secrets-manager", "GET");
                 if (RestClient.isSuccessfulResponse(listResp)) {
                     JsonNode idsNode = listResp.body().get("secret_ids");
                     if (idsNode != null && idsNode.isArray()) {
                         for (JsonNode idNode : idsNode) {
                             String id = idNode.asText();
                             keycloak0AdminClient.sendRequest(
-                                    "/admin/realms/" + CONSUMER_REALM + "/secrets-manager/" + id, "DELETE");
+                                    "/admin/realms/" + TEST_REALM + "/secrets-manager/" + id, "DELETE");
                         }
                     }
                 }
             } catch (Exception e) {
-                // Log the exception
                 logger.warnv(e, "Exception during secrets cleanup");
             }
 
-            keycloak0AdminClient.deleteRealm(CONSUMER_REALM);
+            keycloak0AdminClient.deleteRealm(TEST_REALM);
         }
     }
 }
