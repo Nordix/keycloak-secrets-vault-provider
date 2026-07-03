@@ -79,7 +79,7 @@ public class RestClient {
             return getHttpClient().send(request, jsonBodyHandler());
         } catch (IOException e) {
             throw new RestClientException(String.format("Failed to send %s to %s: %s",
-                    request.method(), request.uri(), e.getCause()), e);
+                    request.method(), request.uri(), e.getCause() != null ? e.getCause() : e), e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RestClientException(String.format("Request to %s was interrupted: %s",

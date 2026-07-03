@@ -93,7 +93,8 @@ public class BaoClient {
                     response.statusCode(),
                     response.body());
             throw new BaoClientException(
-                    "Failed to log in to " + httpClient.getBaseUrl() + ". HTTP response code " + response.statusCode(),
+                    "Failed to log in to " + httpClient.getBaseUrl() + ". HTTP response code " + response.statusCode()
+                    + " body: " + response.body(),
                     response.statusCode());
         }
 
