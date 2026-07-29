@@ -9,9 +9,11 @@
 package io.github.nordix.baoclient;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpClient.Builder;
+import java.net.http.HttpConnectTimeoutException;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandler;
@@ -39,13 +41,29 @@ public class RestClient {
     private static Logger logger = Logger.getLogger(RestClient.class);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final Duration CONNECTION_TIMEOUT = Duration.ofSeconds(3);
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
+
+    // Default connection settings. The connect (3s) and request (10s) timeouts are
+    // fast-fail defaults matching the previous hard-coded behaviour; on their own they do
+    // not ride out a transient backend outage. Resilience against a transient connection
+    // failure (for example while the backend is briefly unavailable during a restart or
+    // failover) is provided by the optional retry, which is OFF by default (maxRetries = 0)
+    // so the client's behaviour is unchanged unless the caller opts in via withRetry(...).
+    // All values can be overridden per-instance via the with* setters below.
+    private static final Duration DEFAULT_CONNECTION_TIMEOUT = Duration.ofSeconds(3);
+    private static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(10);
+    private static final int DEFAULT_MAX_RETRIES = 0;
+    private static final Duration DEFAULT_RETRY_BACKOFF = Duration.ofSeconds(2);
+
     private static final String CONTENT_TYPE_JSON = "application/json";
 
     private final URI baseUrl;
     private String caCertificateFile;
     private Map<String, String> headers = new java.util.HashMap<>();
+
+    private Duration connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
+    private Duration requestTimeout = DEFAULT_REQUEST_TIMEOUT;
+    private int maxRetries = DEFAULT_MAX_RETRIES;
+    private Duration retryBackoff = DEFAULT_RETRY_BACKOFF;
 
     public RestClient(URI baseUrl) {
         this.baseUrl = baseUrl;
@@ -57,7 +75,7 @@ public class RestClient {
 
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(baseUrl.resolve(endpoint))
-                .timeout(REQUEST_TIMEOUT)
+                .timeout(requestTimeout)
                 .header("Content-Type", CONTENT_TYPE_JSON);
 
         headers.forEach(requestBuilder::header);
@@ -75,15 +93,61 @@ public class RestClient {
         HttpRequest request = requestBuilder.build();
         logger.debugv("Sending {0} request to {1}", method, request.uri());
 
+        // Build the client once and reuse it across retry attempts.
+        HttpClient client = getHttpClient();
+
+        int attempt = 0;
+        while (true) {
+            try {
+                return client.send(request, jsonBodyHandler());
+            } catch (HttpConnectTimeoutException | ConnectException e) {
+                // Connection-phase failures are caught separately from all other
+                // IOExceptions on purpose, to draw a clear safety boundary for retries:
+                //
+                //  * A failure to establish the connection (connection refused or connect
+                //    timeout) guarantees the request never reached the server. Re-sending
+                //    it therefore cannot cause duplicate side effects, so it is safe to
+                //    retry regardless of HTTP method - including non-idempotent writes.
+                //
+                //  * Any failure AFTER the connection is established (request timeout,
+                //    other IOException, or an error status code) may mean the server
+                //    already received and partially processed the request. Retrying those
+                //    could double-apply a write, so they are intentionally NOT retried
+                //    here and fall through to the generic handler below.
+                //
+                // This connection-phase failure is the mode seen when the backend is
+                // briefly unavailable, e.g. during a restart or failover. Retry is opt-in
+                // (maxRetries defaults to 0); when it is disabled this block simply rethrows
+                // on the first failure, preserving the original fail-fast behaviour.
+                if (attempt >= maxRetries) {
+                    throw new RestClientException(String.format(
+                            "Failed to send %s to %s after %d attempt(s): %s",
+                            request.method(), request.uri(), attempt + 1,
+                            e.getCause() != null ? e.getCause() : e), e);
+                }
+                attempt++;
+                long backoffMs = retryBackoff.toMillis() * attempt;
+                logger.warnv(
+                        "Connection to {0} failed (attempt {1}/{2}): {3}. Retrying in {4} ms.",
+                        request.uri(), attempt, maxRetries, e.toString(), backoffMs);
+                sleepBeforeRetry(backoffMs, request.uri().toString());
+            } catch (IOException e) {
+                throw new RestClientException(String.format("Failed to send %s to %s: %s",
+                        request.method(), request.uri(), e.getCause() != null ? e.getCause() : e), e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RestClientException(String.format("Request to %s was interrupted: %s",
+                        request.uri(), e.getMessage()), e);
+            }
+        }
+    }
+
+    private void sleepBeforeRetry(long backoffMs, String uri) {
         try {
-            return getHttpClient().send(request, jsonBodyHandler());
-        } catch (IOException e) {
-            throw new RestClientException(String.format("Failed to send %s to %s: %s",
-                    request.method(), request.uri(), e.getCause() != null ? e.getCause() : e), e);
-        } catch (InterruptedException e) {
+            Thread.sleep(backoffMs);
+        } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
-            throw new RestClientException(String.format("Request to %s was interrupted: %s",
-                    request.uri(), e.getMessage()), e);
+            throw new RestClientException("Retry backoff for " + uri + " was interrupted", ie);
         }
     }
 
@@ -127,6 +191,28 @@ public class RestClient {
         return this;
     }
 
+    public RestClient withConnectTimeout(Duration connectionTimeout) {
+        Objects.requireNonNull(connectionTimeout, "Connection timeout must not be null");
+        this.connectionTimeout = connectionTimeout;
+        return this;
+    }
+
+    public RestClient withRequestTimeout(Duration requestTimeout) {
+        Objects.requireNonNull(requestTimeout, "Request timeout must not be null");
+        this.requestTimeout = requestTimeout;
+        return this;
+    }
+
+    public RestClient withRetry(int maxRetries, Duration retryBackoff) {
+        if (maxRetries < 0) {
+            throw new IllegalArgumentException("maxRetries must not be negative");
+        }
+        Objects.requireNonNull(retryBackoff, "Retry backoff must not be null");
+        this.maxRetries = maxRetries;
+        this.retryBackoff = retryBackoff;
+        return this;
+    }
+
     public RestClient withCaCertificateFile(String caCertificateFile) {
         Objects.requireNonNull(caCertificateFile, "CA certificate file must not be null");
         if (!Files.exists(Paths.get(caCertificateFile))) {
@@ -151,7 +237,7 @@ public class RestClient {
     private HttpClient getHttpClient() {
         Builder clientBuilder = HttpClient.newBuilder();
 
-        clientBuilder.connectTimeout(CONNECTION_TIMEOUT);
+        clientBuilder.connectTimeout(connectionTimeout);
         clientBuilder.followRedirects(HttpClient.Redirect.NORMAL);
 
         if (caCertificateFile != null) {

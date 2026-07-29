@@ -86,6 +86,10 @@ The provider works with both OpenBao and HashiCorp Vault, since both implement t
 | `--spi-vault--secrets-provider--ca-certificate-file`  | Path to CA certificate file for HTTPS connections. Optional.              | N/A                                                   |
 | `--spi-vault--secrets-provider--role`                 | Role to use for authentication.                                           | N/A                                                   |
 | `--spi-vault--secrets-provider--cache-name`           | Name of the Infinispan cache to use for storing secrets.                  | Caching is disabled                                   |
+| `--spi-vault--secrets-provider--connect-timeout-seconds`  | Timeout (seconds) for establishing the connection to the server.      | `3`                                                   |
+| `--spi-vault--secrets-provider--request-timeout-seconds`  | Timeout (seconds) for a single request to the server.                 | `10`                                                  |
+| `--spi-vault--secrets-provider--retry-max`            | Maximum number of retries on connection-phase failures (connection refused / connect timeout). `0` disables retry. Only connection-phase failures are retried; failures after the connection is established are never retried. | `0` |
+| `--spi-vault--secrets-provider--retry-backoff-seconds` | Base backoff (seconds) between retries, scaled per attempt (backoff × attempt). Applies only when `retry-max` > 0. | `2` |
 
 <sup>1</sup> Only `kubernetes` is supported.
 
@@ -114,6 +118,10 @@ This separate configuration is necessary because the Vault Secrets Provider and 
 | `--spi-admin-realm-restapi-extension--secrets-manager--ca-certificate-file`  | Path to CA certificate file for HTTPS connections. Optional.                                      | N/A                                                   |
 | `--spi-admin-realm-restapi-extension--secrets-manager--role`                 | Role to use for authentication.                                                                   | N/A                                                   |
 | `--spi-admin-realm-restapi-extension--secrets-manager--cache-name`           | Name of the Infinispan cache to use for storing secrets.                                          | Caching is disabled                                   |
+| `--spi-admin-realm-restapi-extension--secrets-manager--connect-timeout-seconds`  | Timeout (seconds) for establishing the connection to the server.                              | `3`                                                   |
+| `--spi-admin-realm-restapi-extension--secrets-manager--request-timeout-seconds`  | Timeout (seconds) for a single request to the server.                                         | `10`                                                  |
+| `--spi-admin-realm-restapi-extension--secrets-manager--retry-max`            | Maximum number of retries on connection-phase failures (connection refused / connect timeout). `0` disables retry. Only connection-phase failures are retried; failures after the connection is established are never retried. | `0` |
+| `--spi-admin-realm-restapi-extension--secrets-manager--retry-backoff-seconds` | Base backoff (seconds) between retries, scaled per attempt (backoff × attempt). Applies only when `retry-max` > 0. | `2` |
 
 <sup>1</sup> Only `kubernetes` is supported.
 
