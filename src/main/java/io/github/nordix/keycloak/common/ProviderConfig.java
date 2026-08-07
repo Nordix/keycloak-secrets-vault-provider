@@ -30,8 +30,6 @@ public class ProviderConfig {
     private String cacheName;
     private int connectTimeoutSeconds;
     private int requestTimeoutSeconds;
-    private int retryMax;
-    private int retryBackoffSeconds;
 
     public ProviderConfig(Scope configScope, String cmdLineOptionPrefix) {
         this.authMethod = configScope.get("auth-method", "kubernetes");
@@ -44,17 +42,8 @@ public class ProviderConfig {
         this.caCertificateFile = configScope.get("ca-certificate-file");
         this.role = configScope.get("role", "");
         this.cacheName = configScope.get("cache-name");
-        // Connection settings for the backend (OpenBao/Vault). connect-timeout-seconds (3)
-        // and request-timeout-seconds (10) are fast-fail defaults matching the previous
-        // hard-coded values. Retry is opt-in and OFF by default: retry-max defaults to 0
-        // (disabled), so behaviour is unchanged unless the caller sets retry-max > 0 to ride
-        // out a transient connection failure (for example while the backend is briefly
-        // unavailable during a restart or failover). retry-backoff-seconds only applies
-        // when retry-max > 0.
         this.connectTimeoutSeconds = Integer.parseInt(configScope.get("connect-timeout-seconds", "3"));
         this.requestTimeoutSeconds = Integer.parseInt(configScope.get("request-timeout-seconds", "10"));
-        this.retryMax = Integer.parseInt(configScope.get("retry-max", "0"));
-        this.retryBackoffSeconds = Integer.parseInt(configScope.get("retry-backoff-seconds", "2"));
 
         if (address == null) {
             logger.error(cmdLineOptionPrefix + "address + must be provided");
@@ -136,14 +125,6 @@ public class ProviderConfig {
 
     public int getRequestTimeoutSeconds() {
         return requestTimeoutSeconds;
-    }
-
-    public int getRetryMax() {
-        return retryMax;
-    }
-
-    public int getRetryBackoffSeconds() {
-        return retryBackoffSeconds;
     }
 
     @Override

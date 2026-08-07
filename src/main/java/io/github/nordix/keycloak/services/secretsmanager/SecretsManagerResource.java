@@ -251,9 +251,7 @@ abstract public class SecretsManagerResource {
     private void initializeBaoClient() {
         this.baoClient = new BaoClient(providerConfig.getAddress())
                 .withConnectTimeout(java.time.Duration.ofSeconds(providerConfig.getConnectTimeoutSeconds()))
-                .withRequestTimeout(java.time.Duration.ofSeconds(providerConfig.getRequestTimeoutSeconds()))
-                .withRetry(providerConfig.getRetryMax(),
-                        java.time.Duration.ofSeconds(providerConfig.getRetryBackoffSeconds()));
+                .withRequestTimeout(java.time.Duration.ofSeconds(providerConfig.getRequestTimeoutSeconds()));
         if (providerConfig.getCaCertificateFile() != null && !providerConfig.getCaCertificateFile().isEmpty()) {
             this.baoClient.withCaCertificateFile(providerConfig.getCaCertificateFile());
         }

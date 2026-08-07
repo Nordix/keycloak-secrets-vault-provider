@@ -29,19 +29,14 @@ class BaoClientTest {
     @TempDir
     Path tempDir;
 
-    private Path writeTokenFile() throws IOException {
-        Path tokenFile = tempDir.resolve("token");
-        Files.writeString(tokenFile, "dummy-jwt-token");
-        return tokenFile;
-    }
-
     /**
-     * Connection refused with retry disabled: the request is attempted exactly once
-     * (ConnectException) and fails fast.
+     * Test connection refused.
+     * Uses a free port that is not listening, causing ConnectException.
      */
     @Test
-    void testConnectionRefusedNoRetry() throws Exception {
-        Path tokenFile = writeTokenFile();
+    void testConnectionRefused() throws Exception {
+        Path tokenFile = tempDir.resolve("token");
+        Files.writeString(tokenFile, "dummy-jwt-token");
 
         // Find a free port, then close it so nothing is listening on it.
         int port;
@@ -49,35 +44,6 @@ class BaoClientTest {
             port = s.getLocalPort();
         }
 
-        BaoClient client = new BaoClient(URI.create("http://127.0.0.1:" + port))
-                .withRetry(0, Duration.ZERO);
-
-        long start = System.currentTimeMillis();
-        RestClientException ex = Assertions.assertThrows(
-                RestClientException.class,
-                () -> client.loginWithKubernetes(tokenFile.toString(), "test-role"));
-        long elapsed = System.currentTimeMillis() - start;
-
-        Assertions.assertTrue(ex.getMessage().contains("after 1 attempt(s)"), ex.getMessage());
-        Assertions.assertTrue(ex.getMessage().contains("java.net.ConnectException"), ex.getMessage());
-        Assertions.assertTrue(elapsed < 1000, "Expected connection refused immediately but took " + elapsed + "ms");
-    }
-
-    /**
-     * Retry is opt-in: with the default configuration (no withRetry call) the
-     * client must not retry. A connection-refused failure is therefore attempted
-     * exactly once, preserving the original fail-fast behaviour.
-     */
-    @Test
-    void testDefaultConfigurationDoesNotRetry() throws Exception {
-        Path tokenFile = writeTokenFile();
-
-        int port;
-        try (ServerSocket s = new ServerSocket(0)) {
-            port = s.getLocalPort();
-        }
-
-        // No withRetry(...) call -> rely on the default (retry disabled).
         BaoClient client = new BaoClient(URI.create("http://127.0.0.1:" + port));
 
         long start = System.currentTimeMillis();
@@ -86,28 +52,23 @@ class BaoClientTest {
                 () -> client.loginWithKubernetes(tokenFile.toString(), "test-role"));
         long elapsed = System.currentTimeMillis() - start;
 
-        // Default retry-max is 0 -> single attempt, no backoff.
-        Assertions.assertTrue(ex.getMessage().contains("after 1 attempt(s)"), ex.getMessage());
-        Assertions.assertTrue(ex.getMessage().contains("java.net.ConnectException"), ex.getMessage());
-        Assertions.assertTrue(elapsed < 1000, "Expected a single fail-fast attempt but took " + elapsed + "ms");
+        Assertions.assertEquals(
+                "Failed to send POST to http://127.0.0.1:" + port + "/v1/auth/kubernetes/login: java.net.ConnectException",
+                ex.getMessage());
+        Assertions.assertTrue(elapsed < 1000, "Expected connection refused immediately but took " + elapsed + "ms");
     }
 
     /**
-     * Connection refused with retry enabled: connect-phase failures are retried
-     * up to maxRetries times (so maxRetries + 1 total attempts), applying backoff
-     * between attempts, before finally failing.
+     * Test connect timeout.
+     * Uses a non-routable IP address so that SYN packets are silently dropped,
+     * causing HttpConnectTimeoutException after the default connect timeout.
      */
     @Test
-    void testConnectionRefusedExhaustsRetries() throws Exception {
-        Path tokenFile = writeTokenFile();
+    void testConnectTimeout() throws Exception {
+        Path tokenFile = tempDir.resolve("token");
+        Files.writeString(tokenFile, "dummy-jwt-token");
 
-        int port;
-        try (ServerSocket s = new ServerSocket(0)) {
-            port = s.getLocalPort();
-        }
-
-        BaoClient client = new BaoClient(URI.create("http://127.0.0.1:" + port))
-                .withRetry(2, Duration.ofMillis(100));
+        BaoClient client = new BaoClient(URI.create("http://192.0.2.1:8200"));
 
         long start = System.currentTimeMillis();
         RestClientException ex = Assertions.assertThrows(
@@ -115,78 +76,64 @@ class BaoClientTest {
                 () -> client.loginWithKubernetes(tokenFile.toString(), "test-role"));
         long elapsed = System.currentTimeMillis() - start;
 
-        // 2 retries -> 3 total attempts.
-        Assertions.assertTrue(ex.getMessage().contains("after 3 attempt(s)"), ex.getMessage());
-        Assertions.assertTrue(ex.getMessage().contains("java.net.ConnectException"), ex.getMessage());
-        // Backoff is scaled per attempt: 100ms + 200ms = 300ms minimum spent sleeping.
-        Assertions.assertTrue(elapsed >= 300,
-                "Expected at least 300ms of retry backoff but took only " + elapsed + "ms");
+        Assertions.assertEquals(
+                "Failed to send POST to http://192.0.2.1:8200/v1/auth/kubernetes/login: java.net.http.HttpConnectTimeoutException: HTTP connect timed out",
+                ex.getMessage());
+        Assertions.assertTrue(elapsed >= 3000 && elapsed < 6000,
+                "Expected connect timeout after ~3s but took " + elapsed + "ms");
     }
 
     /**
-     * Connect-phase failure that recovers: the first attempts are refused because
-     * nothing is listening yet, then the server comes up and a subsequent retry
-     * succeeds. Verifies that retry actually recovers from a transient outage
-     * (the transient backend unavailability scenario, e.g. a restart or failover).
+     * Test request timeout.
+     * Uses a server that accepts TCP connections but never responds,
+     * causing HttpTimeoutException after REQUEST_TIMEOUT.
      */
     @Test
-    void testRetriesThenSucceedsWhenServerComesUp() throws Exception {
-        Path tokenFile = writeTokenFile();
+    void testRequestTimeout() throws Exception {
+        Path tokenFile = tempDir.resolve("token");
+        Files.writeString(tokenFile, "dummy-jwt-token");
 
-        // Reserve a port, then free it so the initial connect attempts are refused.
-        int port;
-        try (ServerSocket s = new ServerSocket(0)) {
-            port = s.getLocalPort();
-        }
-
-        String responseBody = "{\"auth\":{\"client_token\":\"test-token\"}}";
-        String httpResponse = "HTTP/1.1 200 OK\r\n"
-                + "Content-Type: application/json\r\n"
-                + "Content-Length: " + responseBody.length() + "\r\n"
-                + "\r\n"
-                + responseBody;
-
-        // Start the server only after a short delay so the first connect attempt(s) fail.
-        Thread server = new Thread(() -> {
-            try {
-                Thread.sleep(300);
-                try (ServerSocket ss = new ServerSocket(port);
-                        Socket conn = ss.accept()) {
-                    conn.getInputStream().readNBytes(1);
-                    OutputStream out = conn.getOutputStream();
-                    out.write(httpResponse.getBytes(StandardCharsets.UTF_8));
-                    out.flush();
+        try (ServerSocket server = new ServerSocket(0)) {
+            Thread acceptor = new Thread(() -> {
+                while (!server.isClosed()) {
+                    try {
+                        server.accept(); // Accept but never write anything.
+                    } catch (IOException ignored) {
+                        // Expected once the server socket is closed at the end of the test.
+                    }
                 }
-            } catch (IOException | InterruptedException ignored) {
-                // Test will fail via the assertion below if the server never serves.
-            }
-        });
-        server.setDaemon(true);
-        server.start();
+            });
+            acceptor.setDaemon(true);
+            acceptor.start();
 
-        BaoClient client = new BaoClient(URI.create("http://127.0.0.1:" + port))
-                .withConnectTimeout(Duration.ofMillis(500))
-                .withRetry(10, Duration.ofMillis(150));
+            BaoClient client = new BaoClient(
+                    URI.create("http://127.0.0.1:" + server.getLocalPort()));
 
-        // Should recover once the server is up; no exception is thrown.
-        Assertions.assertDoesNotThrow(
-                () -> client.loginWithKubernetes(tokenFile.toString(), "test-role"));
+            long start = System.currentTimeMillis();
+            RestClientException ex = Assertions.assertThrows(
+                    RestClientException.class,
+                    () -> client.loginWithKubernetes(tokenFile.toString(), "test-role"));
+            long elapsed = System.currentTimeMillis() - start;
 
-        server.join(5000);
+            Assertions.assertEquals(
+                    "Failed to send POST to http://127.0.0.1:" + server.getLocalPort() + "/v1/auth/kubernetes/login: java.net.http.HttpTimeoutException: request timed out",
+                    ex.getMessage());
+            Assertions.assertTrue(elapsed >= 10000 && elapsed < 13000,
+                    "Expected request timeout after ~10s but took " + elapsed + "ms");
+        }
     }
 
     /**
-     * Connect timeout: uses a non-routable IP address so SYN packets are silently
-     * dropped, causing HttpConnectTimeoutException. With retry disabled it fails
-     * after a single attempt once the (shortened) connect timeout elapses.
+     * The connect timeout is configurable and the configured value takes effect.
+     * Shortens it to 1s and asserts the failure arrives well before the 3s default.
      */
     @Test
-    void testConnectTimeoutNoRetry() throws Exception {
-        Path tokenFile = writeTokenFile();
+    void testConnectTimeoutIsConfigurable() throws Exception {
+        Path tokenFile = tempDir.resolve("token");
+        Files.writeString(tokenFile, "dummy-jwt-token");
 
         BaoClient client = new BaoClient(URI.create("http://192.0.2.1:8200"))
-                .withConnectTimeout(Duration.ofSeconds(2))
-                .withRetry(0, Duration.ZERO);
+                .withConnectTimeout(Duration.ofSeconds(1));
 
         long start = System.currentTimeMillis();
         RestClientException ex = Assertions.assertThrows(
@@ -194,20 +141,20 @@ class BaoClientTest {
                 () -> client.loginWithKubernetes(tokenFile.toString(), "test-role"));
         long elapsed = System.currentTimeMillis() - start;
 
-        Assertions.assertTrue(ex.getMessage().contains("after 1 attempt(s)"), ex.getMessage());
         Assertions.assertTrue(ex.getMessage().contains("HttpConnectTimeoutException"), ex.getMessage());
-        Assertions.assertTrue(elapsed >= 2000 && elapsed < 5000,
-                "Expected connect timeout after ~2s but took " + elapsed + "ms");
+        Assertions.assertTrue(elapsed >= 1000 && elapsed < 3000,
+                "Expected connect timeout after ~1s but took " + elapsed + "ms");
     }
 
     /**
-     * Request timeout: a server accepts the TCP connection but never responds. This
-     * is a post-connection failure (HttpTimeoutException), which must NOT be retried
-     * because the request may already have reached the server.
+     * The request timeout is configurable and the configured value takes effect.
+     * Shortens it to 2s against a server that accepts the connection but never
+     * responds, and asserts the failure arrives well before the 10s default.
      */
     @Test
-    void testRequestTimeoutIsNotRetried() throws Exception {
-        Path tokenFile = writeTokenFile();
+    void testRequestTimeoutIsConfigurable() throws Exception {
+        Path tokenFile = tempDir.resolve("token");
+        Files.writeString(tokenFile, "dummy-jwt-token");
 
         try (ServerSocket server = new ServerSocket(0)) {
             Thread acceptor = new Thread(() -> {
@@ -223,8 +170,7 @@ class BaoClientTest {
             acceptor.start();
 
             BaoClient client = new BaoClient(URI.create("http://127.0.0.1:" + server.getLocalPort()))
-                    .withRequestTimeout(Duration.ofSeconds(2))
-                    .withRetry(3, Duration.ofMillis(100));
+                    .withRequestTimeout(Duration.ofSeconds(2));
 
             long start = System.currentTimeMillis();
             RestClientException ex = Assertions.assertThrows(
@@ -233,22 +179,18 @@ class BaoClientTest {
             long elapsed = System.currentTimeMillis() - start;
 
             Assertions.assertTrue(ex.getMessage().contains("HttpTimeoutException"), ex.getMessage());
-            // Not a connect-phase failure -> no retry -> message must not mention attempts.
-            Assertions.assertFalse(ex.getMessage().contains("attempt(s)"), ex.getMessage());
-            // A single ~2s request timeout, not multiplied by retries.
             Assertions.assertTrue(elapsed >= 2000 && elapsed < 5000,
-                    "Expected a single request timeout after ~2s but took " + elapsed + "ms");
+                    "Expected request timeout after ~2s but took " + elapsed + "ms");
         }
     }
 
     /**
-     * HTTP error status response (500) after a successful connection is a response,
-     * not a connect-phase failure, so it must not be retried and surfaces as a
-     * BaoClientException carrying the status code.
+     * Test HTTP error status response (500).
      */
     @Test
     void testErrorStatusResponse() throws Exception {
-        Path tokenFile = writeTokenFile();
+        Path tokenFile = tempDir.resolve("token");
+        Files.writeString(tokenFile, "dummy-jwt-token");
 
         String responseBody = "{\"errors\":[\"permission denied\"]}";
         String httpResponse = "HTTP/1.1 500 Internal Server Error\r\n"
@@ -283,8 +225,7 @@ class BaoClientTest {
 
             Assertions.assertEquals(500, ex.getStatusCode());
             Assertions.assertEquals(
-                    "Failed to log in to http://127.0.0.1:" + server.getLocalPort()
-                            + ". HTTP response code 500 body: " + responseBody,
+                    "Failed to log in to http://127.0.0.1:" + server.getLocalPort() + ". HTTP response code 500 body: " + responseBody,
                     ex.getMessage());
             Assertions.assertTrue(elapsed < 1000, "Expected error response immediately but took " + elapsed + "ms");
         }

@@ -162,8 +162,7 @@ public class SecretsProvider implements VaultProvider {
     private String fetchSecretFromServer(String fullPath, String fieldName) {
         BaoClient client = new BaoClient(config.getAddress())
                 .withConnectTimeout(java.time.Duration.ofSeconds(config.getConnectTimeoutSeconds()))
-                .withRequestTimeout(java.time.Duration.ofSeconds(config.getRequestTimeoutSeconds()))
-                .withRetry(config.getRetryMax(), java.time.Duration.ofSeconds(config.getRetryBackoffSeconds()));
+                .withRequestTimeout(java.time.Duration.ofSeconds(config.getRequestTimeoutSeconds()));
 
         if (config.getCaCertificateFile() != null) {
             client.withCaCertificateFile(config.getCaCertificateFile());

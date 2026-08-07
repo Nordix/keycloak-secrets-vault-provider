@@ -102,35 +102,29 @@ class ProviderConfigTest {
     }
 
     /**
-     * With none of the resilience options set, the defaults must preserve the previous
-     * behaviour: connect 3s, request 10s, and retry disabled (retry-max = 0).
+     * With neither timeout option set, the defaults must preserve the previous
+     * hard-coded behaviour: connect 3s, request 10s.
      */
     @Test
-    void testResilienceDefaults() throws IOException {
+    void testTimeoutDefaults() throws IOException {
         ProviderConfig config = new ProviderConfig(new MapScope(baseOptions()), "test-");
 
         Assertions.assertEquals(3, config.getConnectTimeoutSeconds());
         Assertions.assertEquals(10, config.getRequestTimeoutSeconds());
-        Assertions.assertEquals(0, config.getRetryMax());
-        Assertions.assertEquals(2, config.getRetryBackoffSeconds());
     }
 
     /**
-     * When the resilience options are provided, they are parsed and exposed via the getters.
+     * When the timeout options are provided, they are parsed and exposed via the getters.
      */
     @Test
-    void testResilienceOptionsAreParsed() throws IOException {
+    void testTimeoutOptionsAreParsed() throws IOException {
         Map<String, String> options = baseOptions();
         options.put("connect-timeout-seconds", "5");
         options.put("request-timeout-seconds", "20");
-        options.put("retry-max", "3");
-        options.put("retry-backoff-seconds", "1");
 
         ProviderConfig config = new ProviderConfig(new MapScope(options), "test-");
 
         Assertions.assertEquals(5, config.getConnectTimeoutSeconds());
         Assertions.assertEquals(20, config.getRequestTimeoutSeconds());
-        Assertions.assertEquals(3, config.getRetryMax());
-        Assertions.assertEquals(1, config.getRetryBackoffSeconds());
     }
 }

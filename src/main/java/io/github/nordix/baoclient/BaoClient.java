@@ -68,18 +68,6 @@ public class BaoClient {
     }
 
     /**
-     * Configures bounded retry with backoff for transient connection failures.
-     *
-     * @param maxRetries   maximum number of retries after the first attempt.
-     * @param retryBackoff base backoff between retries (scaled per attempt).
-     * @return This BaoClient instance for method chaining.
-     */
-    public BaoClient withRetry(int maxRetries, java.time.Duration retryBackoff) {
-        httpClient.withRetry(maxRetries, retryBackoff);
-        return this;
-    }
-
-    /**
      * Sets the authentication token to be used by the HTTP client.
      *
      * @param token The authentication token.
