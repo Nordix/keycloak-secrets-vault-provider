@@ -28,6 +28,8 @@ public class ProviderConfig {
     private String caCertificateFile;
     private String role;
     private String cacheName;
+    private int connectTimeoutSeconds;
+    private int requestTimeoutSeconds;
 
     public ProviderConfig(Scope configScope, String cmdLineOptionPrefix) {
         this.authMethod = configScope.get("auth-method", "kubernetes");
@@ -40,6 +42,8 @@ public class ProviderConfig {
         this.caCertificateFile = configScope.get("ca-certificate-file");
         this.role = configScope.get("role", "");
         this.cacheName = configScope.get("cache-name");
+        this.connectTimeoutSeconds = Integer.parseInt(configScope.get("connect-timeout-seconds", "3"));
+        this.requestTimeoutSeconds = Integer.parseInt(configScope.get("request-timeout-seconds", "10"));
 
         if (address == null) {
             logger.error(cmdLineOptionPrefix + "address + must be provided");
@@ -113,6 +117,14 @@ public class ProviderConfig {
 
     public String getCacheName() {
         return cacheName;
+    }
+
+    public int getConnectTimeoutSeconds() {
+        return connectTimeoutSeconds;
+    }
+
+    public int getRequestTimeoutSeconds() {
+        return requestTimeoutSeconds;
     }
 
     @Override

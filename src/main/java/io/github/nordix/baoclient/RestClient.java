@@ -39,13 +39,17 @@ public class RestClient {
     private static Logger logger = Logger.getLogger(RestClient.class);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final Duration CONNECTION_TIMEOUT = Duration.ofSeconds(3);
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration DEFAULT_CONNECTION_TIMEOUT = Duration.ofSeconds(3);
+    private static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(10);
+
     private static final String CONTENT_TYPE_JSON = "application/json";
 
     private final URI baseUrl;
     private String caCertificateFile;
     private Map<String, String> headers = new java.util.HashMap<>();
+
+    private Duration connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
+    private Duration requestTimeout = DEFAULT_REQUEST_TIMEOUT;
 
     public RestClient(URI baseUrl) {
         this.baseUrl = baseUrl;
@@ -57,7 +61,7 @@ public class RestClient {
 
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(baseUrl.resolve(endpoint))
-                .timeout(REQUEST_TIMEOUT)
+                .timeout(requestTimeout)
                 .header("Content-Type", CONTENT_TYPE_JSON);
 
         headers.forEach(requestBuilder::header);
@@ -127,6 +131,18 @@ public class RestClient {
         return this;
     }
 
+    public RestClient withConnectTimeout(Duration connectionTimeout) {
+        Objects.requireNonNull(connectionTimeout, "Connection timeout must not be null");
+        this.connectionTimeout = connectionTimeout;
+        return this;
+    }
+
+    public RestClient withRequestTimeout(Duration requestTimeout) {
+        Objects.requireNonNull(requestTimeout, "Request timeout must not be null");
+        this.requestTimeout = requestTimeout;
+        return this;
+    }
+
     public RestClient withCaCertificateFile(String caCertificateFile) {
         Objects.requireNonNull(caCertificateFile, "CA certificate file must not be null");
         if (!Files.exists(Paths.get(caCertificateFile))) {
@@ -151,7 +167,7 @@ public class RestClient {
     private HttpClient getHttpClient() {
         Builder clientBuilder = HttpClient.newBuilder();
 
-        clientBuilder.connectTimeout(CONNECTION_TIMEOUT);
+        clientBuilder.connectTimeout(connectionTimeout);
         clientBuilder.followRedirects(HttpClient.Redirect.NORMAL);
 
         if (caCertificateFile != null) {

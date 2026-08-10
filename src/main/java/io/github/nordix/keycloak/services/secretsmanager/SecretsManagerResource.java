@@ -249,7 +249,9 @@ abstract public class SecretsManagerResource {
      * Login to OpenBao/HashiCorp Vault.
      */
     private void initializeBaoClient() {
-        this.baoClient = new BaoClient(providerConfig.getAddress());
+        this.baoClient = new BaoClient(providerConfig.getAddress())
+                .withConnectTimeout(java.time.Duration.ofSeconds(providerConfig.getConnectTimeoutSeconds()))
+                .withRequestTimeout(java.time.Duration.ofSeconds(providerConfig.getRequestTimeoutSeconds()));
         if (providerConfig.getCaCertificateFile() != null && !providerConfig.getCaCertificateFile().isEmpty()) {
             this.baoClient.withCaCertificateFile(providerConfig.getCaCertificateFile());
         }

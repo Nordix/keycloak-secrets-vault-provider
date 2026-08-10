@@ -16,6 +16,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -60,7 +61,7 @@ class BaoClientTest {
     /**
      * Test connect timeout.
      * Uses a non-routable IP address so that SYN packets are silently dropped,
-     * causing HttpConnectTimeoutException after CONNECTION_TIMEOUT.
+     * causing HttpConnectTimeoutException after the default connect timeout.
      */
     @Test
     void testConnectTimeout() throws Exception {
@@ -119,6 +120,67 @@ class BaoClientTest {
                     ex.getMessage());
             Assertions.assertTrue(elapsed >= 10000 && elapsed < 13000,
                     "Expected request timeout after ~10s but took " + elapsed + "ms");
+        }
+    }
+
+    /**
+     * The connect timeout is configurable and the configured value takes effect.
+     * Shortens it to 1s and asserts the failure arrives well before the 3s default.
+     */
+    @Test
+    void testConnectTimeoutIsConfigurable() throws Exception {
+        Path tokenFile = tempDir.resolve("token");
+        Files.writeString(tokenFile, "dummy-jwt-token");
+
+        BaoClient client = new BaoClient(URI.create("http://192.0.2.1:8200"))
+                .withConnectTimeout(Duration.ofSeconds(1));
+
+        long start = System.currentTimeMillis();
+        RestClientException ex = Assertions.assertThrows(
+                RestClientException.class,
+                () -> client.loginWithKubernetes(tokenFile.toString(), "test-role"));
+        long elapsed = System.currentTimeMillis() - start;
+
+        Assertions.assertTrue(ex.getMessage().contains("HttpConnectTimeoutException"), ex.getMessage());
+        Assertions.assertTrue(elapsed >= 1000 && elapsed < 3000,
+                "Expected connect timeout after ~1s but took " + elapsed + "ms");
+    }
+
+    /**
+     * The request timeout is configurable and the configured value takes effect.
+     * Shortens it to 2s against a server that accepts the connection but never
+     * responds, and asserts the failure arrives well before the 10s default.
+     */
+    @Test
+    void testRequestTimeoutIsConfigurable() throws Exception {
+        Path tokenFile = tempDir.resolve("token");
+        Files.writeString(tokenFile, "dummy-jwt-token");
+
+        try (ServerSocket server = new ServerSocket(0)) {
+            Thread acceptor = new Thread(() -> {
+                while (!server.isClosed()) {
+                    try {
+                        server.accept(); // Accept but never write anything.
+                    } catch (IOException ignored) {
+                        // Expected once the server socket is closed at the end of the test.
+                    }
+                }
+            });
+            acceptor.setDaemon(true);
+            acceptor.start();
+
+            BaoClient client = new BaoClient(URI.create("http://127.0.0.1:" + server.getLocalPort()))
+                    .withRequestTimeout(Duration.ofSeconds(2));
+
+            long start = System.currentTimeMillis();
+            RestClientException ex = Assertions.assertThrows(
+                    RestClientException.class,
+                    () -> client.loginWithKubernetes(tokenFile.toString(), "test-role"));
+            long elapsed = System.currentTimeMillis() - start;
+
+            Assertions.assertTrue(ex.getMessage().contains("HttpTimeoutException"), ex.getMessage());
+            Assertions.assertTrue(elapsed >= 2000 && elapsed < 5000,
+                    "Expected request timeout after ~2s but took " + elapsed + "ms");
         }
     }
 

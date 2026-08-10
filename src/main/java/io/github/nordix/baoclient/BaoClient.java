@@ -46,6 +46,28 @@ public class BaoClient {
     }
 
     /**
+     * Sets the connection (connect) timeout used by the underlying HTTP client.
+     *
+     * @param connectTimeout the connect timeout.
+     * @return This BaoClient instance for method chaining.
+     */
+    public BaoClient withConnectTimeout(java.time.Duration connectTimeout) {
+        httpClient.withConnectTimeout(connectTimeout);
+        return this;
+    }
+
+    /**
+     * Sets the per-request timeout used by the underlying HTTP client.
+     *
+     * @param requestTimeout the request timeout.
+     * @return This BaoClient instance for method chaining.
+     */
+    public BaoClient withRequestTimeout(java.time.Duration requestTimeout) {
+        httpClient.withRequestTimeout(requestTimeout);
+        return this;
+    }
+
+    /**
      * Sets the authentication token to be used by the HTTP client.
      *
      * @param token The authentication token.
