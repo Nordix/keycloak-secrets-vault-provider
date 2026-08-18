@@ -39,7 +39,7 @@ class SecretsManagerIT {
     private static final String OPENBAO_METRICS_URL = OPENBAO_BASE_URL + "/v1/sys/metrics?format=prometheus";
 
     @RegisterExtension
-    private final KeycloakRestClientExtension keycloakAdminClient = new KeycloakRestClientExtension(
+    private static final KeycloakRestClientExtension keycloakAdminClient = new KeycloakRestClientExtension(
             KEYCLOAK_BASE_URL);
 
     private static final String REALM = "secrets-manager-test-realm";
