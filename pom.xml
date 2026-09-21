@@ -35,7 +35,7 @@
     <version.maven.jacoco.plugin>0.8.13</version.maven.jacoco.plugin>
     <version.maven.shade.plugin>3.5.1</version.maven.shade.plugin>
     <version.maven.exec.plugin>3.6.4</version.maven.exec.plugin>
-    <version.maven.build.helper.plugin>3.6.1</version.maven.build.helper.plugin>
+    <version.maven.build.helper.plugin>3.6.2</version.maven.build.helper.plugin>
     <version.certy>0.5.0</version.certy>
   </properties>
 
